@@ -1,0 +1,12 @@
+const router = require('express').Router();
+const c = require('../controllers/user.controller');
+const { verifyJWT, checkRole } = require('../middlewares/auth.middleware');
+router.use(verifyJWT);
+router.get('/me', c.getMe);
+router.get('/', checkRole('admin'), c.getUsers);
+router.get('/:id', checkRole('admin'), c.getUserById);
+router.post('/reviewer', checkRole('admin'), c.createReviewer);
+router.put('/:id', checkRole('admin'), c.updateUser);
+router.patch('/:id/status', checkRole('admin'), c.updateStatus);
+router.delete('/:id', checkRole('admin'), c.deleteUser);
+module.exports = router;

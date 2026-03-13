@@ -1,0 +1,12 @@
+const router = require('express').Router();
+const c = require('../controllers/contest.controller');
+const { verifyJWT, checkRole } = require('../middlewares/auth.middleware');
+router.use(verifyJWT);
+router.get('/', c.getContests);
+router.get('/:id', c.getContestById);
+router.post('/', checkRole('admin'), c.createContest);
+router.put('/:id', checkRole('admin'), c.updateContest);
+router.patch('/:id/status', checkRole('admin'), c.updateStatus);
+router.post('/:id/categories', checkRole('admin'), c.addCategory);
+router.delete('/:id/categories/:catId', checkRole('admin'), c.removeCategory);
+module.exports = router;

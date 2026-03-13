@@ -1,0 +1,10 @@
+const router = require('express').Router();
+const c = require('../controllers/rubric.controller');
+const { verifyJWT, checkRole } = require('../middlewares/auth.middleware');
+router.use(verifyJWT);
+router.get('/', checkRole('admin'), c.getRubrics);
+router.get('/:id', checkRole('admin', 'reviewer'), c.getRubricById);
+router.post('/', checkRole('admin'), c.createRubric);
+router.put('/:id', checkRole('admin'), c.updateRubric);
+router.delete('/:id', checkRole('admin'), c.deleteRubric);
+module.exports = router;

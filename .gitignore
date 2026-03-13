@@ -1,0 +1,40 @@
+# Node / dependencias
+node_modules/
+server/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Entornos
+.env
+.env.local
+.env.*.local
+server/.env
+
+# Logs
+logs/
+*.log
+server/logs/
+server/*.log
+
+# Uploads (PDFs de proyectos)
+server/uploads/projects/
+server/uploads/projects/**/*
+
+# Cobertura / compilados
+coverage/
+dist/
+build/
+.cache/
+
+# Sistema / editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Otros
+.nyc_output/
+.idea/
+.vscode/

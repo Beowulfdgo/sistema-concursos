@@ -1,0 +1,10 @@
+const router = require('express').Router();
+const c = require('../controllers/evaluation.controller');
+const { verifyJWT, checkRole } = require('../middlewares/auth.middleware');
+router.use(verifyJWT);
+router.get('/project/:projectId', c.getEvaluationsByProject);
+router.get('/:id', c.getEvaluationById);
+router.post('/', checkRole('reviewer'), c.createEvaluation);
+router.put('/:id', checkRole('reviewer'), c.updateEvaluation);
+router.patch('/:id/submit', checkRole('reviewer'), c.submitEvaluation);
+module.exports = router;

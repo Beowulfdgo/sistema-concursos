@@ -1,0 +1,12 @@
+const router = require('express').Router();
+const c = require('../controllers/project.controller');
+const { verifyJWT, checkRole } = require('../middlewares/auth.middleware');
+const upload = require('../middlewares/upload.middleware');
+router.use(verifyJWT);
+router.get('/', c.getProjects);
+router.get('/:id', c.getProjectById);
+router.get('/:id/file', c.getProjectFile);
+router.post('/', checkRole('student'), upload.single('file'), c.createProject);
+router.put('/:id', c.updateProject);
+router.delete('/:id', checkRole('admin'), c.deleteProject);
+module.exports = router;

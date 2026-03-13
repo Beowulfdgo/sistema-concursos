@@ -1,0 +1,1601 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Concursos de Investigación — CNPPE</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/axios@1.6.0/dist/axios.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #8B1A2A;
+      --primary-light: #b82c40;
+      --primary-dark: #5c0f1a;
+      --accent: #D4A017;
+      --accent-light: #f0c040;
+      --blue: #1A3C6B;
+      --blue-light: #2755a0;
+      --surface: #FAFAFA;
+      --surface2: #F3F4F6;
+      --border: #E5E7EB;
+      --text: #1a1a2e;
+      --text-2: #4B5563;
+      --text-3: #9CA3AF;
+      --success: #059669;
+      --warning: #D97706;
+      --error: #DC2626;
+      --sidebar-w: 260px;
+      --header-h: 64px;
+      --radius: 12px;
+      --shadow: 0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -2px rgba(0,0,0,.05);
+    }
+    html, body, #root { height: 100%; font-family: 'DM Sans', sans-serif; background: var(--surface); color: var(--text); }
+    input, select, textarea, button { font-family: inherit; }
+    a { text-decoration: none; color: inherit; }
+    
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* Layout */
+    .app-layout { display: flex; height: 100vh; overflow: hidden; }
+    .sidebar {
+      width: var(--sidebar-w); background: var(--text); color: #fff;
+      display: flex; flex-direction: column; flex-shrink: 0;
+      overflow-y: auto;
+    }
+    .sidebar-logo {
+      padding: 24px 20px 16px; border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .sidebar-logo h1 {
+      font-family: 'DM Serif Display', serif; font-size: 18px;
+      color: var(--accent); line-height: 1.2;
+    }
+    .sidebar-logo p { font-size: 11px; color: rgba(255,255,255,.4); margin-top: 2px; }
+    .sidebar-nav { flex: 1; padding: 12px 0; }
+    .nav-section { padding: 16px 16px 4px; font-size: 10px; font-weight: 600; letter-spacing: .08em; color: rgba(255,255,255,.3); text-transform: uppercase; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; padding: 10px 20px;
+      font-size: 14px; font-weight: 400; color: rgba(255,255,255,.65);
+      cursor: pointer; border-left: 3px solid transparent; transition: all .15s;
+    }
+    .nav-item:hover { background: rgba(255,255,255,.06); color: #fff; }
+    .nav-item.active { background: rgba(var(--accent-rgb, 212,160,23),.12); color: var(--accent); border-left-color: var(--accent); }
+    .nav-icon { font-size: 16px; flex-shrink: 0; }
+    .sidebar-footer { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,.08); }
+    .sidebar-user { display: flex; align-items: center; gap: 12px; }
+    .avatar {
+      width: 36px; height: 36px; border-radius: 50%; background: var(--primary);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0;
+    }
+    .sidebar-user-info { min-width: 0; }
+    .sidebar-user-name { font-size: 13px; font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sidebar-user-role { font-size: 11px; color: rgba(255,255,255,.4); }
+    .logout-btn {
+      margin-top: 8px; width: 100%; padding: 8px 12px; background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.1); border-radius: 8px;
+      color: rgba(255,255,255,.6); font-size: 13px; cursor: pointer; transition: all .15s;
+    }
+    .logout-btn:hover { background: rgba(220,38,38,.2); color: #fca5a5; }
+
+    .main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .topbar {
+      height: var(--header-h); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 28px; gap: 16px;
+      background: #fff; flex-shrink: 0;
+    }
+    .topbar-title { font-size: 20px; font-weight: 600; flex: 1; }
+    .topbar-actions { display: flex; align-items: center; gap: 10px; }
+    .page-content { flex: 1; overflow-y: auto; padding: 28px; }
+
+    /* Cards */
+    .card {
+      background: #fff; border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 24px; box-shadow: var(--shadow);
+    }
+    .card-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; }
+    .stat-card {
+      background: #fff; border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 20px; display: flex; flex-direction: column; gap: 8px;
+    }
+    .stat-label { font-size: 12px; font-weight: 500; color: var(--text-2); text-transform: uppercase; letter-spacing: .05em; }
+    .stat-value { font-size: 32px; font-weight: 700; font-family: 'DM Serif Display', serif; color: var(--text); }
+    .stat-sub { font-size: 12px; color: var(--text-3); }
+    .stat-icon { font-size: 28px; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px;
+      border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer;
+      border: none; transition: all .15s; white-space: nowrap;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-light); }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--border); }
+    .btn-danger { background: var(--error); color: #fff; }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-sm { padding: 6px 12px; font-size: 13px; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-outline { background: transparent; color: var(--primary); border: 1.5px solid var(--primary); }
+    .btn-outline:hover { background: var(--primary); color: #fff; }
+
+    /* Forms */
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; font-size: 13px; font-weight: 500; color: var(--text-2); margin-bottom: 6px; }
+    .form-input, .form-select, .form-textarea {
+      width: 100%; padding: 10px 14px; border: 1.5px solid var(--border);
+      border-radius: 8px; font-size: 14px; background: #fff; color: var(--text);
+      transition: border-color .15s; outline: none;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--primary); }
+    .form-textarea { resize: vertical; min-height: 80px; }
+    .form-error { font-size: 12px; color: var(--error); margin-top: 4px; }
+    .form-hint { font-size: 12px; color: var(--text-3); margin-top: 4px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+
+    /* Tables */
+    .table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    thead { background: var(--surface2); }
+    th { padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; }
+    td { padding: 12px 16px; border-top: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+    tr:hover td { background: var(--surface2); }
+
+    /* Badges */
+    .badge {
+      display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px;
+      font-size: 12px; font-weight: 500;
+    }
+    .badge-active { background: #d1fae5; color: #065f46; }
+    .badge-pending { background: #fef3c7; color: #92400e; }
+    .badge-draft { background: #e5e7eb; color: #374151; }
+    .badge-closed { background: #fee2e2; color: #991b1b; }
+    .badge-archived { background: #f3e8ff; color: #6b21a8; }
+    .badge-submitted { background: #dbeafe; color: #1e40af; }
+    .badge-evaluated { background: #d1fae5; color: #065f46; }
+    .badge-under_review { background: #fef3c7; color: #92400e; }
+    .badge-admin { background: #fce7f3; color: #9d174d; }
+    .badge-reviewer { background: #dbeafe; color: #1e40af; }
+    .badge-student { background: #f0fdf4; color: #166534; }
+    .badge-suspended { background: #fee2e2; color: #991b1b; }
+
+    /* Auth pages */
+    .auth-page {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, var(--text) 0%, var(--primary-dark) 60%, var(--primary) 100%);
+      padding: 24px;
+    }
+    .auth-card {
+      background: #fff; border-radius: 16px; padding: 40px;
+      width: 100%; max-width: 440px; box-shadow: 0 20px 60px rgba(0,0,0,.3);
+    }
+    .auth-logo { text-align: center; margin-bottom: 28px; }
+    .auth-logo h1 { font-family: 'DM Serif Display', serif; font-size: 26px; color: var(--primary); }
+    .auth-logo p { font-size: 13px; color: var(--text-3); margin-top: 4px; }
+    .auth-title { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+    .auth-subtitle { font-size: 14px; color: var(--text-2); margin-bottom: 24px; }
+    .auth-footer { text-align: center; margin-top: 20px; font-size: 13px; color: var(--text-2); }
+    .auth-footer a { color: var(--primary); font-weight: 500; cursor: pointer; }
+    .auth-footer a:hover { text-decoration: underline; }
+
+    /* OTP input */
+    .otp-container { display: flex; gap: 10px; justify-content: center; margin: 20px 0; }
+    .otp-input {
+      width: 52px; height: 60px; border: 2px solid var(--border); border-radius: 10px;
+      text-align: center; font-size: 24px; font-weight: 700; outline: none;
+      transition: border-color .15s;
+    }
+    .otp-input:focus { border-color: var(--primary); }
+
+    /* Alert */
+    .alert {
+      padding: 12px 16px; border-radius: 8px; font-size: 14px; margin-bottom: 16px;
+      display: flex; align-items: flex-start; gap: 10px;
+    }
+    .alert-error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+    .alert-success { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+    .alert-info { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+    .alert-warning { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 1000;
+      display: flex; align-items: center; justify-content: center; padding: 24px;
+    }
+    .modal {
+      background: #fff; border-radius: 16px; padding: 28px; width: 100%;
+      max-width: 560px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-lg);
+    }
+    .modal-title { font-size: 18px; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
+    .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-2); padding: 4px; }
+    .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); }
+
+    /* Section builder (rubric) */
+    .rubric-section {
+      border: 1.5px solid var(--border); border-radius: 10px; margin-bottom: 16px; overflow: hidden;
+    }
+    .rubric-section-header {
+      background: var(--surface2); padding: 14px 16px; display: flex; align-items: center; gap: 12px;
+      cursor: pointer; user-select: none;
+    }
+    .rubric-section-body { padding: 16px; }
+    .criterion-row {
+      display: grid; grid-template-columns: 1fr 90px 90px auto;
+      gap: 10px; align-items: start; padding: 10px 0; border-bottom: 1px solid var(--border);
+    }
+    .criterion-row:last-child { border-bottom: none; }
+
+    /* Score input */
+    .score-input-wrap { position: relative; }
+    .score-input {
+      width: 100%; padding: 8px 12px; border: 2px solid var(--border); border-radius: 8px;
+      font-size: 16px; font-weight: 600; text-align: center; outline: none; transition: border-color .15s;
+    }
+    .score-input:focus { border-color: var(--primary); }
+    .score-input.valid { border-color: var(--success); }
+    .score-input.invalid { border-color: var(--error); }
+    .score-range { font-size: 11px; color: var(--text-3); text-align: center; margin-top: 3px; }
+
+    /* Progress bar */
+    .progress-bar-wrap { background: var(--surface2); border-radius: 100px; height: 8px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; border-radius: 100px; background: var(--primary); transition: width .3s; }
+
+    /* Tabs */
+    .tabs { display: flex; border-bottom: 2px solid var(--border); margin-bottom: 24px; gap: 4px; }
+    .tab {
+      padding: 10px 20px; font-size: 14px; font-weight: 500; cursor: pointer;
+      border-bottom: 2px solid transparent; margin-bottom: -2px; color: var(--text-2); transition: all .15s;
+    }
+    .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .tab:hover:not(.active) { color: var(--text); }
+
+    /* Empty state */
+    .empty-state { text-align: center; padding: 60px 24px; color: var(--text-3); }
+    .empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; margin-top: 8px; }
+
+    /* Loading */
+    .spinner {
+      width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--primary);
+      border-radius: 50%; animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-center { display: flex; justify-content: center; align-items: center; padding: 60px; }
+
+    /* File upload */
+    .file-drop {
+      border: 2px dashed var(--border); border-radius: 10px; padding: 32px 24px;
+      text-align: center; cursor: pointer; transition: all .15s;
+    }
+    .file-drop:hover, .file-drop.drag-over { border-color: var(--primary); background: #fff5f5; }
+    .file-drop .file-icon { font-size: 36px; margin-bottom: 8px; }
+    .file-drop p { font-size: 14px; color: var(--text-2); }
+    .file-drop small { font-size: 12px; color: var(--text-3); }
+
+    /* Ranking table */
+    .rank-medal { font-size: 20px; }
+    .score-pill {
+      display: inline-block; padding: 4px 12px; border-radius: 20px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      color: #fff; font-weight: 700; font-size: 14px;
+    }
+
+    /* Team members */
+    .team-member-row { display: flex; gap: 10px; margin-bottom: 8px; align-items: center; }
+    .team-member-row .form-input { margin-bottom: 0; }
+
+    /* Tooltip */
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+    .page-header h2 { font-size: 22px; font-weight: 600; }
+    .page-header p { font-size: 14px; color: var(--text-2); margin-top: 2px; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react,env">
+const { useState, useEffect, useCallback, useRef, createContext, useContext, Fragment } = React;
+
+// ─── API ────────────────────────────────────────────────────────────────────
+const API = 'http://localhost:5000/api/v1';
+const ax = axios.create({ baseURL: API, withCredentials: true });
+ax.interceptors.request.use(c => {
+  const t = localStorage.getItem('tk');
+  if (t) c.headers.Authorization = `Bearer ${t}`;
+  return c;
+});
+ax.interceptors.response.use(r => r, async err => {
+  const orig = err.config;
+  if (err.response?.status === 401 && !orig._retry) {
+    orig._retry = true;
+    try {
+      const { data } = await axios.post(`${API}/auth/refresh`, {}, { withCredentials: true });
+      localStorage.setItem('tk', data.accessToken);
+      orig.headers.Authorization = `Bearer ${data.accessToken}`;
+      return ax(orig);
+    } catch {
+      localStorage.removeItem('tk');
+      window.location.hash = '#/login';
+    }
+  }
+  return Promise.reject(err);
+});
+
+// ─── AUTH CONTEXT ────────────────────────────────────────────────────────────
+const AuthCtx = createContext(null);
+function AuthProvider({ children }) {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    const t = localStorage.getItem('tk');
+    if (t) ax.get('/users/me').then(r => setUser(r.data)).catch(() => localStorage.removeItem('tk')).finally(() => setLoading(false));
+    else setLoading(false);
+  }, []);
+  const login = async (email, password) => {
+    const { data } = await ax.post('/auth/login', { email, password });
+    localStorage.setItem('tk', data.accessToken);
+    setUser(data.user);
+    return data.user;
+  };
+  const logout = async () => {
+    try { await ax.post('/auth/logout'); } catch {}
+    localStorage.removeItem('tk');
+    setUser(null);
+  };
+  return <AuthCtx.Provider value={{ user, setUser, loading, login, logout }}>{children}</AuthCtx.Provider>;
+}
+const useAuth = () => useContext(AuthCtx);
+
+// ─── ROUTER (hash-based) ─────────────────────────────────────────────────────
+function useHash() {
+  const [hash, setHash] = useState(window.location.hash || '#/login');
+  useEffect(() => {
+    const handler = () => setHash(window.location.hash || '#/login');
+    window.addEventListener('hashchange', handler);
+    return () => window.removeEventListener('hashchange', handler);
+  }, []);
+  return hash;
+}
+function navigate(path) { window.location.hash = '#' + path; }
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+const errMsg = err => err?.response?.data?.message || err?.message || 'Error desconocido';
+const fmtDate = d => d ? new Date(d).toLocaleDateString('es-MX', { year:'numeric', month:'short', day:'numeric' }) : '—';
+const fmtScore = s => s !== null && s !== undefined ? s.toFixed(2) : '—';
+
+function Badge({ status, text }) {
+  const t = text || status;
+  const labels = { active:'Activo', pending:'Pendiente', draft:'Borrador', closed:'Cerrado', archived:'Archivado',
+    submitted:'Enviado', evaluated:'Evaluado', under_review:'En revisión', suspended:'Suspendido',
+    admin:'Admin', reviewer:'Revisor', student:'Alumno', monthly:'Mensual', annual:'Anual' };
+  return <span className={`badge badge-${status}`}>{labels[t] || t}</span>;
+}
+
+function Alert({ type = 'error', children }) {
+  const icons = { error: '⚠️', success: '✅', info: 'ℹ️', warning: '🔔' };
+  return <div className={`alert alert-${type}`}><span>{icons[type]}</span><span>{children}</span></div>;
+}
+
+function Spinner() { return <div className="loading-center"><div className="spinner"></div></div>; }
+
+function Modal({ title, onClose, children, footer }) {
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal">
+        <div className="modal-title">
+          <span>{title}</span>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+        {children}
+        {footer && <div className="modal-footer">{footer}</div>}
+      </div>
+    </div>
+  );
+}
+
+function ConfirmModal({ title, message, onConfirm, onClose, danger }) {
+  return (
+    <Modal title={title} onClose={onClose} footer={
+      <>
+        <button className="btn btn-secondary" onClick={onClose}>Cancelar</button>
+        <button className={`btn ${danger ? 'btn-danger' : 'btn-primary'}`} onClick={onConfirm}>Confirmar</button>
+      </>
+    }>
+      <p style={{ color: 'var(--text-2)' }}>{message}</p>
+    </Modal>
+  );
+}
+
+// ─── AUTH PAGES ──────────────────────────────────────────────────────────────
+function LoginPage() {
+  const { login } = useAuth();
+  const [form, setForm] = useState({ email: '', password: '' });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const submit = async e => {
+    e.preventDefault();
+    setError(''); setLoading(true);
+    try {
+      const u = await login(form.email, form.password);
+      if (u.role === 'admin') navigate('/admin/dashboard');
+      else if (u.role === 'reviewer') navigate('/reviewer/dashboard');
+      else navigate('/student/dashboard');
+    } catch (err) {
+      const msg = errMsg(err);
+      if (err.response?.data?.userId) {
+        navigate(`/verify-email?userId=${err.response.data.userId}`);
+      } else setError(msg);
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="auth-page">
+      <div className="auth-card">
+        <div className="auth-logo">
+          <h1>🏆 CNPPE</h1>
+          <p>Concursos de Investigación</p>
+        </div>
+        <h2 className="auth-title">Iniciar Sesión</h2>
+        <p className="auth-subtitle">Ingresa con tus credenciales</p>
+        {error && <Alert type="error">{error}</Alert>}
+        <form onSubmit={submit}>
+          <div className="form-group">
+            <label className="form-label">Correo electrónico</label>
+            <input className="form-input" type="email" required placeholder="correo@ejemplo.com"
+              value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Contraseña</label>
+            <input className="form-input" type="password" required placeholder="••••••••"
+              value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} />
+          </div>
+          <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '12px' }} disabled={loading}>
+            {loading ? 'Ingresando...' : 'Iniciar Sesión'}
+          </button>
+        </form>
+        <div className="auth-footer">
+          ¿No tienes cuenta? <a onClick={() => navigate('/register')}>Regístrate</a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RegisterPage() {
+  const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const submit = async e => {
+    e.preventDefault();
+    setError('');
+    if (form.password !== form.confirm) return setError('Las contraseñas no coinciden');
+    setLoading(true);
+    try {
+      const { data } = await ax.post('/auth/register', { name: form.name, email: form.email, password: form.password });
+      navigate(`/verify-email?userId=${data.userId}`);
+    } catch (err) { setError(errMsg(err)); }
+    setLoading(false);
+  };
+
+  return (
+    <div className="auth-page">
+      <div className="auth-card">
+        <div className="auth-logo"><h1>🏆 CNPPE</h1><p>Concursos de Investigación</p></div>
+        <h2 className="auth-title">Crear cuenta</h2>
+        <p className="auth-subtitle">Regístrate como alumno participante</p>
+        {error && <Alert type="error">{error}</Alert>}
+        <form onSubmit={submit}>
+          {[['name','Nombre completo','text','Tu nombre completo'],['email','Correo electrónico','email','correo@ejemplo.com'],
+            ['password','Contraseña','password','Mínimo 6 caracteres'],['confirm','Confirmar contraseña','password','Repite tu contraseña']].map(([k,l,t,p]) => (
+            <div className="form-group" key={k}>
+              <label className="form-label">{l}</label>
+              <input className="form-input" type={t} required placeholder={p} value={form[k]} onChange={e => setForm({...form,[k]:e.target.value})} />
+            </div>
+          ))}
+          <button className="btn btn-primary" style={{ width:'100%', justifyContent:'center', padding:'12px' }} disabled={loading}>
+            {loading ? 'Registrando...' : 'Crear cuenta'}
+          </button>
+        </form>
+        <div className="auth-footer">¿Ya tienes cuenta? <a onClick={() => navigate('/login')}>Inicia sesión</a></div>
+      </div>
+    </div>
+  );
+}
+
+function VerifyEmailPage() {
+  const userId = new URLSearchParams(window.location.hash.split('?')[1] || '').get('userId');
+  const [code, setCode] = useState(['','','','','','']);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+  const [resending, setResending] = useState(false);
+  const refs = Array.from({length:6}, () => useRef());
+
+  const handleInput = (i, val) => {
+    if (!/^\d?$/.test(val)) return;
+    const next = [...code]; next[i] = val; setCode(next);
+    if (val && i < 5) refs[i+1].current?.focus();
+  };
+  const handleKeyDown = (i, e) => { if (e.key === 'Backspace' && !code[i] && i > 0) refs[i-1].current?.focus(); };
+
+  const verify = async () => {
+    const c = code.join('');
+    if (c.length < 6) return setError('Ingresa el código completo');
+    setError('');
+    try {
+      await ax.post('/auth/verify-email', { userId, code: c });
+      setSuccess(true);
+      setTimeout(() => navigate('/login'), 2000);
+    } catch (err) { setError(errMsg(err)); }
+  };
+
+  const resend = async () => {
+    setResending(true);
+    try { await ax.post('/auth/resend-code', { userId }); setError(''); alert('Código reenviado'); }
+    catch (err) { setError(errMsg(err)); }
+    setResending(false);
+  };
+
+  return (
+    <div className="auth-page">
+      <div className="auth-card">
+        <div className="auth-logo"><h1>📧</h1><p>Verificación de email</p></div>
+        <h2 className="auth-title">Verifica tu cuenta</h2>
+        <p className="auth-subtitle">Ingresa el código de 6 dígitos enviado a tu correo</p>
+        {error && <Alert type="error">{error}</Alert>}
+        {success && <Alert type="success">¡Cuenta verificada! Redirigiendo...</Alert>}
+        <div className="otp-container">
+          {code.map((c, i) => (
+            <input key={i} ref={refs[i]} className="otp-input" maxLength={1} value={c}
+              onChange={e => handleInput(i, e.target.value)} onKeyDown={e => handleKeyDown(i, e)} />
+          ))}
+        </div>
+        <button className="btn btn-primary" style={{ width:'100%', justifyContent:'center', padding:'12px' }} onClick={verify}>
+          Verificar código
+        </button>
+        <div className="auth-footer">
+          ¿No recibiste el código? <a onClick={resend}>{resending ? 'Enviando...' : 'Reenviar'}</a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── LAYOUTS ─────────────────────────────────────────────────────────────────
+function AppLayout({ children, title, actions, navItems, currentPath }) {
+  const { user, logout } = useAuth();
+  const initials = (user?.name || 'U').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  const roleLabel = { admin:'Administrador', reviewer:'Revisor', student:'Alumno' }[user?.role] || '';
+
+  return (
+    <div className="app-layout">
+      <aside className="sidebar">
+        <div className="sidebar-logo">
+          <h1>🏆 CNPPE</h1>
+          <p>Gestión de Concursos</p>
+        </div>
+        <nav className="sidebar-nav">
+          {navItems.map((section, si) => (
+            <div key={si}>
+              {section.label && <div className="nav-section">{section.label}</div>}
+              {section.items.map(item => (
+                <div key={item.path} className={`nav-item ${currentPath === item.path ? 'active' : ''}`}
+                  onClick={() => navigate(item.path)}>
+                  <span className="nav-icon">{item.icon}</span>
+                  <span>{item.label}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </nav>
+        <div className="sidebar-footer">
+          <div className="sidebar-user">
+            <div className="avatar">{initials}</div>
+            <div className="sidebar-user-info">
+              <div className="sidebar-user-name">{user?.name}</div>
+              <div className="sidebar-user-role">{roleLabel}</div>
+            </div>
+          </div>
+          <button className="logout-btn" onClick={logout}>🚪 Cerrar sesión</button>
+        </div>
+      </aside>
+      <div className="main-area">
+        <header className="topbar">
+          <div className="topbar-title">{title}</div>
+          <div className="topbar-actions">{actions}</div>
+        </header>
+        <main className="page-content">{children}</main>
+      </div>
+    </div>
+  );
+}
+
+// ─── ADMIN PAGES ─────────────────────────────────────────────────────────────
+const ADMIN_NAV = [
+  { items: [{ path:'/admin/dashboard', icon:'📊', label:'Dashboard' }] },
+  { label:'Configuración', items: [
+    { path:'/admin/rubrics', icon:'📋', label:'Rúbricas' },
+    { path:'/admin/contests', icon:'🏆', label:'Concursos' },
+  ]},
+  { label:'Gestión', items: [
+    { path:'/admin/users', icon:'👥', label:'Usuarios' },
+    { path:'/admin/assignments', icon:'🔗', label:'Asignaciones' },
+  ]},
+];
+
+function AdminLayout({ children, title, actions, path }) {
+  return <AppLayout title={title} actions={actions} navItems={ADMIN_NAV} currentPath={path}>{children}</AppLayout>;
+}
+
+function AdminDashboard() {
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    ax.get('/dashboard/admin').then(r => setStats(r.data)).finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <AdminLayout title="Dashboard" path="/admin/dashboard"><Spinner /></AdminLayout>;
+  return (
+    <AdminLayout title="Dashboard" path="/admin/dashboard">
+      <div className="stat-grid" style={{ marginBottom: 24 }}>
+        {[
+          { label:'Concursos Activos', value: stats?.activeContests ?? 0, sub: `${stats?.totalContests ?? 0} en total`, icon:'🏆' },
+          { label:'Proyectos', value: stats?.totalProjects ?? 0, sub:'Proyectos registrados', icon:'📁' },
+          { label:'Revisores', value: stats?.totalReviewers ?? 0, sub:'Evaluadores activos', icon:'👨‍🏫' },
+          { label:'Alumnos', value: stats?.totalStudents ?? 0, sub:'Registrados', icon:'🎓' },
+        ].map((s,i) => (
+          <div className="stat-card" key={i}>
+            <div className="stat-icon">{s.icon}</div>
+            <div className="stat-value">{s.value}</div>
+            <div className="stat-label">{s.label}</div>
+            <div className="stat-sub">{s.sub}</div>
+          </div>
+        ))}
+      </div>
+      <div className="card">
+        <div className="card-title">🕐 Proyectos Recientes</div>
+        {stats?.recentProjects?.length > 0 ? (
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>Proyecto</th><th>Alumno</th><th>Concurso</th><th>Estado</th><th>Fecha</th></tr></thead>
+              <tbody>
+                {stats.recentProjects.map(p => (
+                  <tr key={p._id}>
+                    <td><strong>{p.title}</strong></td>
+                    <td>{p.representative?.name}</td>
+                    <td>{p.contestId?.name}</td>
+                    <td><Badge status={p.status} /></td>
+                    <td>{fmtDate(p.createdAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : <div className="empty-state"><div className="empty-icon">📂</div><p>No hay proyectos aún</p></div>}
+      </div>
+    </AdminLayout>
+  );
+}
+
+// ─── RUBRICS ──────────────────────────────────────────────────────────────────
+function RubricsPage() {
+  const [rubrics, setRubrics] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [confirm, setConfirm] = useState(null);
+  const [error, setError] = useState('');
+
+  const load = () => { setLoading(true); ax.get('/rubrics').then(r => setRubrics(r.data)).finally(() => setLoading(false)); };
+  useEffect(load, []);
+
+  const del = async (id) => {
+    try { await ax.delete(`/rubrics/${id}`); load(); setConfirm(null); }
+    catch (err) { setError(errMsg(err)); setConfirm(null); }
+  };
+
+  return (
+    <AdminLayout title="Rúbricas" path="/admin/rubrics"
+      actions={<button className="btn btn-primary" onClick={() => { setEditing(null); setShowForm(true); }}>+ Nueva Rúbrica</button>}>
+      {error && <Alert type="error">{error}</Alert>}
+      {loading ? <Spinner /> : rubrics.length === 0 ? (
+        <div className="empty-state"><div className="empty-icon">📋</div><h3>Sin rúbricas</h3><p>Crea tu primera rúbrica de evaluación</p></div>
+      ) : (
+        <div className="card" style={{ padding: 0 }}>
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>Nombre</th><th>Secciones</th><th>Puntos totales</th><th>Creado por</th><th>Fecha</th><th>Acciones</th></tr></thead>
+              <tbody>
+                {rubrics.map(r => (
+                  <tr key={r._id}>
+                    <td><strong>{r.name}</strong>{r.description && <div style={{fontSize:12,color:'var(--text-3)'}}>{r.description}</div>}</td>
+                    <td>{r.sections?.length || 0}</td>
+                    <td><span className="score-pill">{r.totalPoints}</span></td>
+                    <td>{r.createdBy?.name}</td>
+                    <td>{fmtDate(r.createdAt)}</td>
+                    <td>
+                      <div style={{ display:'flex', gap:6 }}>
+                        <button className="btn btn-secondary btn-sm" onClick={() => { setEditing(r); setShowForm(true); }}>✏️ Editar</button>
+                        <button className="btn btn-danger btn-sm" onClick={() => setConfirm(r._id)}>🗑️</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      {showForm && <RubricFormModal rubric={editing} onClose={() => setShowForm(false)} onSaved={() => { setShowForm(false); load(); }} />}
+      {confirm && <ConfirmModal title="Eliminar Rúbrica" message="¿Estás seguro? Esta acción no se puede deshacer." danger onConfirm={() => del(confirm)} onClose={() => setConfirm(null)} />}
+    </AdminLayout>
+  );
+}
+
+function RubricFormModal({ rubric, onClose, onSaved }) {
+  const [name, setName] = useState(rubric?.name || '');
+  const [description, setDescription] = useState(rubric?.description || '');
+  const [sections, setSections] = useState(rubric?.sections?.length ? rubric.sections : [{ title:'', maxPoints:0, criteria:[{description:'',minScore:0,maxScore:1}] }]);
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const totalPts = sections.reduce((s,sec) => s + Number(sec.maxPoints||0), 0);
+
+  const addSection = () => setSections([...sections, { title:'', maxPoints:0, criteria:[{description:'',minScore:0,maxScore:1}] }]);
+  const removeSection = i => setSections(sections.filter((_,idx) => idx !== i));
+  const updateSection = (i, key, val) => { const s=[...sections]; s[i]={...s[i],[key]:val}; setSections(s); };
+  const addCriterion = i => { const s=[...sections]; s[i].criteria=[...s[i].criteria,{description:'',minScore:0,maxScore:1}]; setSections(s); };
+  const removeCriterion = (si,ci) => { const s=[...sections]; s[si].criteria=s[si].criteria.filter((_,idx)=>idx!==ci); setSections(s); };
+  const updateCriterion = (si,ci,key,val) => { const s=[...sections]; s[si].criteria[ci]={...s[si].criteria[ci],[key]:val}; setSections(s); };
+
+  const save = async () => {
+    if (!name.trim()) return setError('El nombre es requerido');
+    setSaving(true); setError('');
+    try {
+      if (rubric?._id) await ax.put(`/rubrics/${rubric._id}`, { name, description, sections });
+      else await ax.post('/rubrics', { name, description, sections });
+      onSaved();
+    } catch (err) { setError(errMsg(err)); }
+    setSaving(false);
+  };
+
+  return (
+    <Modal title={rubric ? 'Editar Rúbrica' : 'Nueva Rúbrica'} onClose={onClose}
+      footer={<><button className="btn btn-secondary" onClick={onClose}>Cancelar</button><button className="btn btn-primary" onClick={save} disabled={saving}>{saving?'Guardando...':'Guardar Rúbrica'}</button></>}>
+      {error && <Alert type="error">{error}</Alert>}
+      <div className="form-group">
+        <label className="form-label">Nombre de la rúbrica *</label>
+        <input className="form-input" value={name} onChange={e=>setName(e.target.value)} placeholder="Ej. Rúbrica Tecnológico" />
+      </div>
+      <div className="form-group">
+        <label className="form-label">Descripción</label>
+        <textarea className="form-textarea" value={description} onChange={e=>setDescription(e.target.value)} placeholder="Descripción opcional..." />
+      </div>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+        <strong>Secciones</strong>
+        <div style={{display:'flex',alignItems:'center',gap:12}}>
+          <span style={{fontSize:13,color:'var(--text-2)'}}>Total: <strong style={{color:'var(--primary)'}}>{totalPts} pts</strong></span>
+          <button className="btn btn-secondary btn-sm" onClick={addSection}>+ Sección</button>
+        </div>
+      </div>
+      {sections.map((sec,si) => (
+        <div className="rubric-section" key={si}>
+          <div className="rubric-section-header">
+            <span style={{flex:1,fontWeight:600}}>{sec.title || `Sección ${si+1}`}</span>
+            <span style={{fontSize:12,color:'var(--text-2)',marginRight:8}}>{sec.maxPoints} pts</span>
+            <button style={{background:'none',border:'none',cursor:'pointer',color:'var(--error)',fontSize:16}} onClick={()=>removeSection(si)}>✕</button>
+          </div>
+          <div className="rubric-section-body">
+            <div className="form-row" style={{marginBottom:12}}>
+              <div>
+                <label className="form-label">Título de la sección</label>
+                <input className="form-input" value={sec.title} onChange={e=>updateSection(si,'title',e.target.value)} placeholder="Ej. I. INFORME DEL PROTOTIPO" />
+              </div>
+              <div>
+                <label className="form-label">Puntaje máximo</label>
+                <input className="form-input" type="number" value={sec.maxPoints} onChange={e=>updateSection(si,'maxPoints',e.target.value)} />
+              </div>
+            </div>
+            <div style={{marginBottom:8}}>
+              <strong style={{fontSize:13}}>Criterios</strong>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 80px 80px 32px',gap:8,marginTop:6,marginBottom:4,padding:'0 4px'}}>
+                <span style={{fontSize:11,color:'var(--text-3)',fontWeight:600}}>DESCRIPCIÓN</span>
+                <span style={{fontSize:11,color:'var(--text-3)',fontWeight:600}}>MÍN</span>
+                <span style={{fontSize:11,color:'var(--text-3)',fontWeight:600}}>MÁX</span>
+                <span></span>
+              </div>
+              {sec.criteria.map((c,ci) => (
+                <div key={ci} style={{display:'grid',gridTemplateColumns:'1fr 80px 80px 32px',gap:8,marginBottom:8,alignItems:'center'}}>
+                  <input className="form-input" style={{marginBottom:0}} value={c.description} onChange={e=>updateCriterion(si,ci,'description',e.target.value)} placeholder="Descripción del criterio..." />
+                  <input className="form-input" style={{marginBottom:0}} type="number" value={c.minScore} onChange={e=>updateCriterion(si,ci,'minScore',Number(e.target.value))} />
+                  <input className="form-input" style={{marginBottom:0}} type="number" value={c.maxScore} onChange={e=>updateCriterion(si,ci,'maxScore',Number(e.target.value))} />
+                  <button style={{background:'none',border:'none',cursor:'pointer',color:'var(--error)',fontSize:16,padding:'4px'}} onClick={()=>removeCriterion(si,ci)}>✕</button>
+                </div>
+              ))}
+              <button className="btn btn-secondary btn-sm" style={{marginTop:4}} onClick={()=>addCriterion(si)}>+ Criterio</button>
+            </div>
+          </div>
+        </div>
+      ))}
+    </Modal>
+  );
+}
+
+// ─── CONTESTS ─────────────────────────────────────────────────────────────────
+function ContestsPage() {
+  const [contests, setContests] = useState([]);
+  const [rubrics, setRubrics] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [confirm, setConfirm] = useState(null);
+
+  const load = () => { setLoading(true); Promise.all([ax.get('/contests'),ax.get('/rubrics')]).then(([c,r])=>{setContests(c.data);setRubrics(r.data)}).finally(()=>setLoading(false)); };
+  useEffect(load, []);
+
+  const updateStatus = async (id, status) => {
+    try { await ax.patch(`/contests/${id}/status`, { status }); load(); } catch {}
+  };
+
+  return (
+    <AdminLayout title="Concursos" path="/admin/contests"
+      actions={<button className="btn btn-primary" onClick={() => { setEditing(null); setShowForm(true); }}>+ Nuevo Concurso</button>}>
+      {loading ? <Spinner /> : contests.length === 0 ? (
+        <div className="empty-state"><div className="empty-icon">🏆</div><h3>Sin concursos</h3><p>Crea tu primer concurso</p></div>
+      ) : (
+        <div style={{display:'grid',gap:16}}>
+          {contests.map(c => (
+            <div className="card" key={c._id} style={{padding:'20px 24px'}}>
+              <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:16}}>
+                <div style={{flex:1}}>
+                  <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
+                    <h3 style={{fontSize:17,fontWeight:600}}>{c.name}</h3>
+                    <Badge status={c.status} />
+                    <Badge status={c.periodicity} />
+                  </div>
+                  {c.description && <p style={{fontSize:14,color:'var(--text-2)',marginBottom:8}}>{c.description}</p>}
+                  <div style={{display:'flex',gap:20,fontSize:13,color:'var(--text-2)'}}>
+                    <span>📅 {fmtDate(c.startDate)} → {fmtDate(c.endDate)}</span>
+                    <span>📋 {c.rubricId?.name || <em style={{color:'var(--text-3)'}}>Sin rúbrica</em>}</span>
+                    <span>🏷️ {c.categories?.length || 0} categorías</span>
+                  </div>
+                </div>
+                <div style={{display:'flex',gap:8,flexShrink:0}}>
+                  <button className="btn btn-secondary btn-sm" onClick={() => { setEditing(c); setShowForm(true); }}>✏️</button>
+                  {c.status === 'draft' && <button className="btn btn-success btn-sm" onClick={()=>updateStatus(c._id,'active')}>▶ Activar</button>}
+                  {c.status === 'active' && <button className="btn btn-secondary btn-sm" onClick={()=>updateStatus(c._id,'closed')}>⏹ Cerrar</button>}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {showForm && <ContestFormModal contest={editing} rubrics={rubrics} onClose={() => setShowForm(false)} onSaved={() => { setShowForm(false); load(); }} />}
+    </AdminLayout>
+  );
+}
+
+function ContestFormModal({ contest, rubrics, onClose, onSaved }) {
+  const [form, setForm] = useState({
+    name: contest?.name||'', description: contest?.description||'',
+    startDate: contest?.startDate?.slice(0,10)||'', endDate: contest?.endDate?.slice(0,10)||'',
+    periodicity: contest?.periodicity||'annual', rubricId: contest?.rubricId?._id||contest?.rubricId||'',
+    categories: contest?.categories||[],
+  });
+  const [newCat, setNewCat] = useState('');
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    if (!form.name||!form.startDate||!form.endDate) return setError('Nombre y fechas son requeridos');
+    setSaving(true); setError('');
+    try {
+      if (contest?._id) await ax.put(`/contests/${contest._id}`, form);
+      else await ax.post('/contests', form);
+      onSaved();
+    } catch(err) { setError(errMsg(err)); }
+    setSaving(false);
+  };
+
+  const addCat = () => {
+    if (!newCat.trim()) return;
+    setForm({...form, categories:[...form.categories, {name:newCat.trim()}]});
+    setNewCat('');
+  };
+  const removeCat = i => setForm({...form, categories:form.categories.filter((_,idx)=>idx!==i)});
+
+  return (
+    <Modal title={contest?'Editar Concurso':'Nuevo Concurso'} onClose={onClose}
+      footer={<><button className="btn btn-secondary" onClick={onClose}>Cancelar</button><button className="btn btn-primary" onClick={save} disabled={saving}>{saving?'Guardando...':'Guardar'}</button></>}>
+      {error && <Alert type="error">{error}</Alert>}
+      <div className="form-group"><label className="form-label">Nombre *</label>
+        <input className="form-input" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Nombre del concurso" /></div>
+      <div className="form-group"><label className="form-label">Descripción</label>
+        <textarea className="form-textarea" value={form.description} onChange={e=>setForm({...form,description:e.target.value})} /></div>
+      <div className="form-row">
+        <div className="form-group"><label className="form-label">Fecha inicio *</label>
+          <input className="form-input" type="date" value={form.startDate} onChange={e=>setForm({...form,startDate:e.target.value})} /></div>
+        <div className="form-group"><label className="form-label">Fecha fin *</label>
+          <input className="form-input" type="date" value={form.endDate} onChange={e=>setForm({...form,endDate:e.target.value})} /></div>
+      </div>
+      <div className="form-row">
+        <div className="form-group"><label className="form-label">Periodicidad</label>
+          <select className="form-select" value={form.periodicity} onChange={e=>setForm({...form,periodicity:e.target.value})}>
+            <option value="annual">Anual</option><option value="monthly">Mensual</option></select></div>
+        <div className="form-group"><label className="form-label">Rúbrica</label>
+          <select className="form-select" value={form.rubricId} onChange={e=>setForm({...form,rubricId:e.target.value})}>
+            <option value="">— Sin rúbrica —</option>
+            {rubrics.map(r=><option key={r._id} value={r._id}>{r.name} ({r.totalPoints} pts)</option>)}
+          </select></div>
+      </div>
+      <div className="form-group">
+        <label className="form-label">Categorías</label>
+        <div style={{display:'flex',gap:8,marginBottom:8}}>
+          <input className="form-input" style={{flex:1}} value={newCat} onChange={e=>setNewCat(e.target.value)} placeholder="Nombre de categoría" onKeyDown={e=>e.key==='Enter'&&addCat()} />
+          <button className="btn btn-secondary" onClick={addCat}>+ Agregar</button>
+        </div>
+        <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+          {form.categories.map((cat,i)=>(
+            <span key={i} style={{background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:20,padding:'4px 12px',fontSize:13,display:'flex',alignItems:'center',gap:6}}>
+              {cat.name}<button style={{background:'none',border:'none',cursor:'pointer',color:'var(--error)',fontSize:14,padding:0}} onClick={()=>removeCat(i)}>✕</button>
+            </span>
+          ))}
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+// ─── USERS ────────────────────────────────────────────────────────────────────
+function UsersPage() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [roleFilter, setRoleFilter] = useState('');
+  const [showReviewerForm, setShowReviewerForm] = useState(false);
+
+  const load = () => { setLoading(true); ax.get('/users', { params: roleFilter ? { role: roleFilter } : {} }).then(r=>setUsers(r.data.users||[])).finally(()=>setLoading(false)); };
+  useEffect(load, [roleFilter]);
+
+  const toggleStatus = async (u) => {
+    const ns = u.status==='active' ? 'suspended' : 'active';
+    try { await ax.patch(`/users/${u._id}/status`, { status:ns }); load(); } catch {}
+  };
+
+  return (
+    <AdminLayout title="Usuarios" path="/admin/users"
+      actions={<button className="btn btn-primary" onClick={()=>setShowReviewerForm(true)}>+ Nuevo Revisor</button>}>
+      <div style={{display:'flex',gap:10,marginBottom:16}}>
+        {['','admin','reviewer','student'].map(r=>(
+          <button key={r} className={`btn ${roleFilter===r?'btn-primary':'btn-secondary'} btn-sm`} onClick={()=>setRoleFilter(r)}>
+            {r||'Todos'}
+          </button>
+        ))}
+      </div>
+      {loading ? <Spinner /> : (
+        <div className="card" style={{padding:0}}>
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th><th>Registro</th><th>Acciones</th></tr></thead>
+              <tbody>
+                {users.map(u=>(
+                  <tr key={u._id}>
+                    <td><strong>{u.name}</strong></td>
+                    <td style={{color:'var(--text-2)'}}>{u.email}</td>
+                    <td><Badge status={u.role} /></td>
+                    <td><Badge status={u.status} /></td>
+                    <td>{fmtDate(u.createdAt)}</td>
+                    <td>
+                      {u.role !== 'admin' && (
+                        <button className={`btn btn-sm ${u.status==='active'?'btn-danger':'btn-success'}`} onClick={()=>toggleStatus(u)}>
+                          {u.status==='active'?'Suspender':'Activar'}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      {showReviewerForm && <ReviewerFormModal onClose={()=>setShowReviewerForm(false)} onSaved={()=>{setShowReviewerForm(false);load();}} />}
+    </AdminLayout>
+  );
+}
+
+function ReviewerFormModal({ onClose, onSaved }) {
+  const [form, setForm] = useState({ name:'', email:'', password:'' });
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const save = async () => {
+    setSaving(true); setError('');
+    try { await ax.post('/users/reviewer', form); onSaved(); }
+    catch(err) { setError(errMsg(err)); }
+    setSaving(false);
+  };
+  return (
+    <Modal title="Nuevo Revisor" onClose={onClose}
+      footer={<><button className="btn btn-secondary" onClick={onClose}>Cancelar</button><button className="btn btn-primary" onClick={save} disabled={saving}>{saving?'Guardando...':'Crear Revisor'}</button></>}>
+      {error && <Alert type="error">{error}</Alert>}
+      {[['name','Nombre completo','text'],['email','Email','email'],['password','Contraseña','password']].map(([k,l,t])=>(
+        <div className="form-group" key={k}><label className="form-label">{l}</label>
+          <input className="form-input" type={t} value={form[k]} onChange={e=>setForm({...form,[k]:e.target.value})} /></div>
+      ))}
+    </Modal>
+  );
+}
+
+// ─── ASSIGNMENTS ──────────────────────────────────────────────────────────────
+function AssignmentsPage() {
+  const [contests, setContests] = useState([]);
+  const [reviewers, setReviewers] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [assignments, setAssignments] = useState([]);
+  const [sel, setSel] = useState({ contestId:'', reviewerId:'' });
+  const [selProjects, setSelProjects] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState('');
+
+  useEffect(() => {
+    Promise.all([ax.get('/contests'),ax.get('/users',{params:{role:'reviewer'}}),ax.get('/assignments')]).then(([c,r,a])=>{
+      setContests(c.data); setReviewers(r.data.users||[]); setAssignments(a.data);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (sel.contestId) ax.get('/projects', { params:{ contestId:sel.contestId }}).then(r=>setProjects(r.data));
+    else setProjects([]);
+  }, [sel.contestId]);
+
+  // Pre-fill existing assignment when reviewer+contest selected
+  useEffect(() => {
+    if (sel.contestId && sel.reviewerId) {
+      const ex = assignments.find(a=>a.contestId?._id===sel.contestId&&a.reviewerId?._id===sel.reviewerId);
+      setSelProjects(ex?.projectIds?.map(p=>p._id||p)||[]);
+    } else setSelProjects([]);
+  }, [sel, assignments]);
+
+  const toggleProject = id => setSelProjects(prev => prev.includes(id)?prev.filter(x=>x!==id):[...prev,id]);
+
+  const save = async () => {
+    if (!sel.contestId||!sel.reviewerId) return;
+    setSaving(true); setMsg('');
+    try {
+      await ax.post('/assignments', { contestId:sel.contestId, reviewerId:sel.reviewerId, projectIds:selProjects });
+      setMsg('✅ Asignación guardada');
+      const r = await ax.get('/assignments'); setAssignments(r.data);
+    } catch(err) { setMsg('❌ '+errMsg(err)); }
+    setSaving(false);
+  };
+
+  return (
+    <AdminLayout title="Asignaciones" path="/admin/assignments">
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24}}>
+        <div className="card">
+          <div className="card-title">🔗 Asignar Proyectos</div>
+          <div className="form-group"><label className="form-label">Concurso</label>
+            <select className="form-select" value={sel.contestId} onChange={e=>setSel({...sel,contestId:e.target.value})}>
+              <option value="">— Selecciona concurso —</option>
+              {contests.map(c=><option key={c._id} value={c._id}>{c.name}</option>)}
+            </select></div>
+          <div className="form-group"><label className="form-label">Revisor</label>
+            <select className="form-select" value={sel.reviewerId} onChange={e=>setSel({...sel,reviewerId:e.target.value})}>
+              <option value="">— Selecciona revisor —</option>
+              {reviewers.map(r=><option key={r._id} value={r._id}>{r.name}</option>)}
+            </select></div>
+          {sel.contestId && sel.reviewerId && (
+            <>
+              <div className="form-label" style={{marginBottom:8}}>Proyectos disponibles ({projects.length})</div>
+              {projects.length===0 ? <p style={{color:'var(--text-3)',fontSize:13}}>Sin proyectos en este concurso</p> :
+                projects.map(p=>(
+                  <label key={p._id} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderBottom:'1px solid var(--border)',cursor:'pointer'}}>
+                    <input type="checkbox" checked={selProjects.includes(p._id)} onChange={()=>toggleProject(p._id)} />
+                    <span style={{flex:1}}>{p.title}</span>
+                    <Badge status={p.status} />
+                  </label>
+                ))
+              }
+              <button className="btn btn-primary" style={{marginTop:16,width:'100%',justifyContent:'center'}} onClick={save} disabled={saving}>
+                {saving?'Guardando...':'Guardar Asignación'}
+              </button>
+              {msg && <div style={{marginTop:8,fontSize:13}}>{msg}</div>}
+            </>
+          )}
+        </div>
+        <div className="card">
+          <div className="card-title">📋 Asignaciones Actuales</div>
+          {assignments.length===0 ? <div className="empty-state"><div className="empty-icon">🔗</div><p>Sin asignaciones</p></div> :
+            assignments.map(a=>(
+              <div key={a._id} style={{padding:'12px 0',borderBottom:'1px solid var(--border)'}}>
+                <div style={{fontWeight:500}}>{a.reviewerId?.name}</div>
+                <div style={{fontSize:12,color:'var(--text-2)'}}>{a.contestId?.name}</div>
+                <div style={{fontSize:12,color:'var(--text-3)',marginTop:2}}>{a.projectIds?.length||0} proyectos asignados</div>
+              </div>
+            ))
+          }
+        </div>
+      </div>
+    </AdminLayout>
+  );
+}
+
+// ─── REVIEWER PAGES ───────────────────────────────────────────────────────────
+const REVIEWER_NAV = [
+  { items: [
+    { path:'/reviewer/dashboard', icon:'📊', label:'Dashboard' },
+  ]},
+];
+
+function ReviewerLayout({ children, title, actions, path }) {
+  return <AppLayout title={title} actions={actions} navItems={REVIEWER_NAV} currentPath={path}>{children}</AppLayout>;
+}
+
+function ReviewerDashboard() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => { ax.get('/dashboard/reviewer').then(r=>setData(r.data)).finally(()=>setLoading(false)); }, []);
+
+  if (loading) return <ReviewerLayout title="Dashboard" path="/reviewer/dashboard"><Spinner /></ReviewerLayout>;
+
+  return (
+    <ReviewerLayout title="Mis Concursos" path="/reviewer/dashboard">
+      {data?.summary?.length === 0 && <div className="empty-state"><div className="empty-icon">📭</div><h3>Sin asignaciones</h3><p>El administrador no te ha asignado proyectos aún</p></div>}
+      <div style={{display:'grid',gap:16}}>
+        {data?.summary?.map((s,i) => (
+          <div className="card" key={i} style={{padding:'20px 24px'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <div>
+                <h3 style={{fontSize:17,fontWeight:600}}>{s.contest?.name}</h3>
+                <div style={{display:'flex',gap:12,fontSize:13,color:'var(--text-2)',marginTop:4}}>
+                  <span>📁 {s.totalProjects} proyectos</span>
+                  <span style={{color:'var(--success)'}}>✅ {s.evaluated} evaluados</span>
+                  <span style={{color:s.pending>0?'var(--warning)':'var(--text-3)'}}>⏳ {s.pending} pendientes</span>
+                </div>
+              </div>
+              <button className="btn btn-primary btn-sm" onClick={()=>navigate(`/reviewer/contest/${s.contest?._id}`)}>
+                Ver proyectos →
+              </button>
+            </div>
+            <div style={{marginTop:12}}>
+              <div className="progress-bar-wrap">
+                <div className="progress-bar-fill" style={{width:`${s.totalProjects>0?Math.round(s.evaluated/s.totalProjects*100):0}%`}}></div>
+              </div>
+              <div style={{fontSize:11,color:'var(--text-3)',marginTop:4}}>
+                {s.totalProjects>0?Math.round(s.evaluated/s.totalProjects*100):0}% completado
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </ReviewerLayout>
+  );
+}
+
+function ReviewerContestPage() {
+  const contestId = window.location.hash.split('/').pop();
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => { ax.get('/projects', { params:{ contestId }}).then(r=>setProjects(r.data)).finally(()=>setLoading(false)); }, []);
+
+  return (
+    <ReviewerLayout title="Proyectos Asignados" path="/reviewer/dashboard"
+      actions={<button className="btn btn-secondary btn-sm" onClick={()=>navigate('/reviewer/dashboard')}>← Volver</button>}>
+      {loading ? <Spinner /> : projects.length===0 ? (
+        <div className="empty-state"><div className="empty-icon">📂</div><h3>Sin proyectos</h3></div>
+      ) : (
+        <div style={{display:'grid',gap:12}}>
+          {projects.map(p=>(
+            <div className="card" key={p._id} style={{padding:'16px 20px'}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                <div>
+                  <strong>{p.title}</strong>
+                  <div style={{fontSize:13,color:'var(--text-2)',marginTop:2}}>
+                    {p.representative?.name} · {p.categoryName}
+                  </div>
+                </div>
+                <div style={{display:'flex',gap:10,alignItems:'center'}}>
+                  <Badge status={p.status} />
+                  {p.finalScore !== null && <span className="score-pill">{fmtScore(p.finalScore)}</span>}
+                  <button className="btn btn-primary btn-sm" onClick={()=>navigate(`/reviewer/evaluate/${p._id}`)}>
+                    {p.status==='evaluated'?'Ver evaluación':'Evaluar'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </ReviewerLayout>
+  );
+}
+
+function EvaluationPage() {
+  const projectId = window.location.hash.split('/').pop();
+  const [project, setProject] = useState(null);
+  const [rubric, setRubric] = useState(null);
+  const [existingEval, setExistingEval] = useState(null);
+  const [sections, setSections] = useState([]);
+  const [comments, setComments] = useState('');
+  const [plagiarism, setPlagiarism] = useState('');
+  const [aiPct, setAiPct] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  useEffect(() => {
+    ax.get(`/projects/${projectId}`).then(async r => {
+      const proj = r.data;
+      setProject(proj);
+      const rubricId = proj.contestId?.rubricId;
+      if (rubricId) {
+        const rb = await ax.get(`/rubrics/${typeof rubricId==='object'?rubricId._id:rubricId}`);
+        setRubric(rb.data);
+        // Load existing eval
+        try {
+          const evs = await ax.get(`/evaluations/project/${projectId}`);
+          const { user } = JSON.parse(atob(localStorage.getItem('tk')?.split('.')[1]||'e30='));
+          const mine = evs.data.find(e=>e.reviewerId?._id===user?.id||e.reviewerId===user?.id);
+          if (mine) {
+            setExistingEval(mine);
+            setSections(mine.sections);
+            setComments(mine.generalComments||'');
+            setPlagiarism(mine.plagiarismPercentage??'');
+            setAiPct(mine.aiPercentage??'');
+          } else {
+            // Init from rubric
+            setSections(rb.data.sections.map(s=>({
+              sectionId:s._id, title:s.title, maxPoints:s.maxPoints,
+              criteria:s.criteria.map(c=>({criterionId:c._id,description:c.description,minScore:c.minScore,maxScore:c.maxScore,score:null,comment:''})),
+              sectionTotal:0,
+            })));
+          }
+        } catch {}
+      }
+    }).finally(()=>setLoading(false));
+  }, []);
+
+  const updateScore = (si,ci,val) => {
+    const s = JSON.parse(JSON.stringify(sections));
+    const c = s[si].criteria[ci];
+    const num = val===''?null:Number(val);
+    c.score = num;
+    s[si].sectionTotal = s[si].criteria.reduce((t,cr)=>t+(cr.score||0),0);
+    setSections(s);
+  };
+
+  const totalScore = sections.reduce((t,s)=>t+(s.sectionTotal||0),0);
+
+  const saveEval = async (submit=false) => {
+    setSaving(true); setMsg('');
+    try {
+      const payload = { projectId, sections, generalComments:comments, plagiarismPercentage:plagiarism||undefined, aiPercentage:aiPct||undefined, status:submit?'submitted':'draft' };
+      if (existingEval) {
+        if (submit) await ax.patch(`/evaluations/${existingEval._id}/submit`);
+        else await ax.put(`/evaluations/${existingEval._id}`, payload);
+      } else {
+        const r = await ax.post('/evaluations', payload);
+        setExistingEval(r.data);
+        if (submit) await ax.patch(`/evaluations/${r.data._id}/submit`);
+      }
+      setMsg(submit?'✅ Evaluación enviada':'✅ Borrador guardado');
+      if (submit) setTimeout(()=>navigate('/reviewer/dashboard'),1500);
+    } catch(err) { setMsg('❌ '+errMsg(err)); }
+    setSaving(false); setShowConfirm(false);
+  };
+
+  if (loading) return <ReviewerLayout title="Evaluación" path="/reviewer/dashboard"><Spinner /></ReviewerLayout>;
+
+  return (
+    <ReviewerLayout title={`Evaluando: ${project?.title||''}`} path="/reviewer/dashboard"
+      actions={<button className="btn btn-secondary btn-sm" onClick={()=>window.history.back()}>← Volver</button>}>
+      {msg && <Alert type={msg.startsWith('✅')?'success':'error'}>{msg}</Alert>}
+
+      {/* Project info */}
+      <div className="card" style={{marginBottom:20}}>
+        <div style={{display:'flex',gap:20,flexWrap:'wrap'}}>
+          <div><span style={{fontSize:12,color:'var(--text-3)'}}>PROYECTO</span><div style={{fontWeight:600}}>{project?.title}</div></div>
+          <div><span style={{fontSize:12,color:'var(--text-3)'}}>REPRESENTANTE</span><div>{project?.representative?.name}</div></div>
+          <div><span style={{fontSize:12,color:'var(--text-3)'}}>CATEGORÍA</span><div>{project?.categoryName}</div></div>
+          {project?.filePath && <a href={`${API}/projects/${project._id}/file`} target="_blank" rel="noreferrer"><button className="btn btn-secondary btn-sm">📄 Ver PDF</button></a>}
+        </div>
+      </div>
+
+      {/* Score summary */}
+      <div className="card" style={{marginBottom:20,background:'linear-gradient(135deg,var(--primary-dark),var(--primary))',color:'#fff',border:'none'}}>
+        <div style={{display:'flex',gap:24,flexWrap:'wrap'}}>
+          <div><div style={{fontSize:12,opacity:.7}}>PUNTAJE TOTAL</div><div style={{fontSize:40,fontFamily:"'DM Serif Display',serif",lineHeight:1}}>{totalScore.toFixed(2)}</div>
+            <div style={{fontSize:12,opacity:.6}}>/ {rubric?.totalPoints} puntos</div></div>
+          {sections.map((s,i)=>(
+            <div key={i}><div style={{fontSize:11,opacity:.6}}>{s.title?.substring(0,20)}</div>
+              <div style={{fontSize:20,fontWeight:700}}>{(s.sectionTotal||0).toFixed(1)}<span style={{fontSize:12,opacity:.6}}>/{s.maxPoints}</span></div></div>
+          ))}
+        </div>
+      </div>
+
+      {/* Rubric sections */}
+      {sections.map((sec,si)=>(
+        <div className="rubric-section" key={si} style={{marginBottom:16}}>
+          <div className="rubric-section-header">
+            <strong style={{flex:1}}>{sec.title}</strong>
+            <span style={{fontSize:13,color:'var(--text-2)'}}>{(sec.sectionTotal||0).toFixed(1)} / {sec.maxPoints} pts</span>
+          </div>
+          <div className="rubric-section-body">
+            <div style={{display:'grid',gridTemplateColumns:'1fr 120px',gap:10}}>
+              <strong style={{fontSize:12,color:'var(--text-3)'}}>CRITERIO</strong>
+              <strong style={{fontSize:12,color:'var(--text-3)',textAlign:'center'}}>PUNTAJE</strong>
+            </div>
+            {sec.criteria.map((c,ci)=>(
+              <div key={ci} style={{display:'grid',gridTemplateColumns:'1fr 120px',gap:10,padding:'10px 0',borderTop:'1px solid var(--border)'}}>
+                <div>
+                  <p style={{fontSize:13,color:'var(--text)'}}>{c.description}</p>
+                  <p style={{fontSize:11,color:'var(--text-3)',marginTop:2}}>Rango: [{c.minScore} — {c.maxScore}]</p>
+                </div>
+                <div>
+                  <input type="number" className={`score-input ${c.score!==null?(c.score>=c.minScore&&c.score<=c.maxScore?'valid':'invalid'):''}`}
+                    min={c.minScore} max={c.maxScore} step="0.1"
+                    value={c.score??''} onChange={e=>updateScore(si,ci,e.target.value)}
+                    placeholder="—" disabled={existingEval?.status==='submitted'} />
+                  <div className="score-range">[{c.minScore} – {c.maxScore}]</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      {/* Comments & extra fields */}
+      <div className="card" style={{marginBottom:20}}>
+        <div className="form-row">
+          <div className="form-group"><label className="form-label">% Plagio detectado</label>
+            <input className="form-input" type="number" min="0" max="100" value={plagiarism} onChange={e=>setPlagiarism(e.target.value)} disabled={existingEval?.status==='submitted'} /></div>
+          <div className="form-group"><label className="form-label">% Uso de IA detectado</label>
+            <input className="form-input" type="number" min="0" max="100" value={aiPct} onChange={e=>setAiPct(e.target.value)} disabled={existingEval?.status==='submitted'} /></div>
+        </div>
+        <div className="form-group"><label className="form-label">Comentarios y observaciones generales</label>
+          <textarea className="form-textarea" rows="4" value={comments} onChange={e=>setComments(e.target.value)} placeholder="Ingresa tus observaciones..." disabled={existingEval?.status==='submitted'} /></div>
+      </div>
+
+      {existingEval?.status!=='submitted' && (
+        <div style={{display:'flex',gap:12,justifyContent:'flex-end'}}>
+          <button className="btn btn-secondary" onClick={()=>saveEval(false)} disabled={saving}>💾 Guardar Borrador</button>
+          <button className="btn btn-primary" onClick={()=>setShowConfirm(true)} disabled={saving}>✅ Enviar Evaluación</button>
+        </div>
+      )}
+      {existingEval?.status==='submitted' && <Alert type="success">Esta evaluación ya fue enviada el {fmtDate(existingEval.submittedAt)}</Alert>}
+
+      {showConfirm && <ConfirmModal title="Enviar Evaluación" message="Una vez enviada no podrás modificarla. ¿Continuar?" onConfirm={()=>saveEval(true)} onClose={()=>setShowConfirm(false)} />}
+    </ReviewerLayout>
+  );
+}
+
+// ─── STUDENT PAGES ────────────────────────────────────────────────────────────
+const STUDENT_NAV = [
+  { items: [{ path:'/student/dashboard', icon:'🎓', label:'Mi Proyecto' }] },
+];
+
+function StudentLayout({ children, title, actions, path }) {
+  return <AppLayout title={title} actions={actions} navItems={STUDENT_NAV} currentPath={path}>{children}</AppLayout>;
+}
+
+function StudentDashboard() {
+  const { user } = useAuth();
+  const [dashData, setDashData] = useState(null);
+  const [contests, setContests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showUpload, setShowUpload] = useState(false);
+  const [tab, setTab] = useState('projects');
+
+  const load = () => { setLoading(true); Promise.all([ax.get('/dashboard/student'),ax.get('/contests')]).then(([d,c])=>{setDashData(d.data);setContests(c.data.filter(c=>c.isOpen||c.status==='active'))}).finally(()=>setLoading(false)); };
+  useEffect(load, []);
+
+  if (loading) return <StudentLayout title="Mi Proyecto" path="/student/dashboard"><Spinner /></StudentLayout>;
+
+  const projects = dashData?.projects || [];
+
+  return (
+    <StudentLayout title="Mi Proyecto" path="/student/dashboard"
+      actions={<button className="btn btn-primary" onClick={()=>setShowUpload(true)}>📤 Subir Proyecto</button>}>
+      <div style={{marginBottom:16,background:'linear-gradient(135deg,var(--blue),var(--blue-light))',borderRadius:12,padding:'20px 24px',color:'#fff'}}>
+        <div style={{fontSize:12,opacity:.7}}>BIENVENIDO</div>
+        <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:24}}>{user?.name}</h2>
+        <p style={{fontSize:13,opacity:.8,marginTop:4}}>Panel de alumno participante</p>
+      </div>
+
+      <div className="tabs">
+        <div className={`tab ${tab==='projects'?'active':''}`} onClick={()=>setTab('projects')}>Mis Proyectos ({projects.length})</div>
+      </div>
+
+      {projects.length===0 ? (
+        <div className="empty-state">
+          <div className="empty-icon">📂</div>
+          <h3>Aún no has subido ningún proyecto</h3>
+          <p>Haz clic en <strong>Subir Proyecto</strong> para participar en un concurso</p>
+          <button className="btn btn-primary" style={{marginTop:16}} onClick={()=>setShowUpload(true)}>📤 Subir mi primer proyecto</button>
+        </div>
+      ) : (
+        <div style={{display:'grid',gap:16}}>
+          {projects.map(p=>(
+            <div className="card" key={p._id} style={{padding:'20px 24px'}}>
+              <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:16}}>
+                <div>
+                  <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
+                    <h3 style={{fontSize:16,fontWeight:600}}>{p.title}</h3>
+                    <Badge status={p.status} />
+                  </div>
+                  <div style={{fontSize:13,color:'var(--text-2)',display:'flex',gap:16}}>
+                    <span>🏆 {p.contestId?.name}</span>
+                    <span>🏷️ {p.categoryName}</span>
+                    <span>📅 {fmtDate(p.createdAt)}</span>
+                  </div>
+                  <div style={{marginTop:8,fontSize:13,color:'var(--text-2)'}}>
+                    👥 Equipo: {p.teamMembers?.map(m=>m.name).join(', ')||'—'}
+                  </div>
+                </div>
+                <div style={{textAlign:'right'}}>
+                  {p.status==='evaluated' && p.finalScore!==null ? (
+                    <div>
+                      <div style={{fontSize:11,color:'var(--text-3)'}}>CALIFICACIÓN FINAL</div>
+                      <div style={{fontSize:36,fontFamily:"'DM Serif Display',serif",color:'var(--primary)',lineHeight:1}}>{fmtScore(p.finalScore)}</div>
+                      <div style={{fontSize:12,color:'var(--text-3)'}}>puntos</div>
+                    </div>
+                  ) : (
+                    <div style={{color:'var(--text-3)',fontSize:13,textAlign:'center'}}>
+                      <div style={{fontSize:28}}>⏳</div>
+                      <div>En evaluación</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {showUpload && <UploadProjectModal contests={contests} onClose={()=>setShowUpload(false)} onSaved={()=>{setShowUpload(false);load();}} />}
+    </StudentLayout>
+  );
+}
+
+function UploadProjectModal({ contests, onClose, onSaved }) {
+  const [form, setForm] = useState({ title:'', contestId:'', categoryId:'', teamMembers:[{name:'',email:''}] });
+  const [file, setFile] = useState(null);
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [drag, setDrag] = useState(false);
+  const fileRef = useRef();
+
+  const selContest = contests.find(c=>c._id===form.contestId);
+
+  const addMember = () => setForm({...form, teamMembers:[...form.teamMembers,{name:'',email:''}]});
+  const removeMember = i => setForm({...form, teamMembers:form.teamMembers.filter((_,idx)=>idx!==i)});
+  const updateMember = (i,key,val) => { const m=[...form.teamMembers]; m[i]={...m[i],[key]:val}; setForm({...form,teamMembers:m}); };
+
+  const handleFile = f => { if (f?.type==='application/pdf') setFile(f); else setError('Solo se permiten archivos PDF'); };
+  const onDrop = e => { e.preventDefault(); setDrag(false); handleFile(e.dataTransfer.files[0]); };
+
+  const save = async () => {
+    if (!form.title||!form.contestId||!file) return setError('Título, concurso y archivo PDF son requeridos');
+    setSaving(true); setError('');
+    try {
+      const fd = new FormData();
+      fd.append('title', form.title);
+      fd.append('contestId', form.contestId);
+      fd.append('categoryId', form.categoryId||'000000000000000000000000');
+      fd.append('categoryName', selContest?.categories?.find(c=>c._id===form.categoryId)?.name||'');
+      fd.append('teamMembers', JSON.stringify(form.teamMembers.filter(m=>m.name)));
+      fd.append('file', file);
+      await ax.post('/projects', fd, { headers:{ 'Content-Type':'multipart/form-data' }});
+      onSaved();
+    } catch(err) { setError(errMsg(err)); }
+    setSaving(false);
+  };
+
+  return (
+    <Modal title="📤 Subir Proyecto" onClose={onClose}
+      footer={<><button className="btn btn-secondary" onClick={onClose}>Cancelar</button><button className="btn btn-primary" onClick={save} disabled={saving}>{saving?'Subiendo...':'Registrar Proyecto'}</button></>}>
+      {error && <Alert type="error">{error}</Alert>}
+      <div className="form-group"><label className="form-label">Título del proyecto *</label>
+        <input className="form-input" value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder="Nombre de tu proyecto" /></div>
+      <div className="form-group"><label className="form-label">Concurso *</label>
+        <select className="form-select" value={form.contestId} onChange={e=>setForm({...form,contestId:e.target.value,categoryId:''})}>
+          <option value="">— Selecciona concurso —</option>
+          {contests.map(c=><option key={c._id} value={c._id}>{c.name}</option>)}
+        </select></div>
+      {selContest?.categories?.length>0 && (
+        <div className="form-group"><label className="form-label">Categoría</label>
+          <select className="form-select" value={form.categoryId} onChange={e=>setForm({...form,categoryId:e.target.value})}>
+            <option value="">— Selecciona categoría —</option>
+            {selContest.categories.map(c=><option key={c._id} value={c._id}>{c.name}</option>)}
+          </select></div>
+      )}
+      <div className="form-group">
+        <label className="form-label">Integrantes del equipo</label>
+        {form.teamMembers.map((m,i)=>(
+          <div className="team-member-row" key={i}>
+            <input className="form-input" placeholder="Nombre" value={m.name} onChange={e=>updateMember(i,'name',e.target.value)} />
+            <input className="form-input" placeholder="Email" type="email" value={m.email} onChange={e=>updateMember(i,'email',e.target.value)} />
+            {form.teamMembers.length>1 && <button style={{background:'none',border:'none',cursor:'pointer',color:'var(--error)',fontSize:18,padding:'4px'}} onClick={()=>removeMember(i)}>✕</button>}
+          </div>
+        ))}
+        <button className="btn btn-secondary btn-sm" onClick={addMember}>+ Agregar integrante</button>
+      </div>
+      <div className="form-group">
+        <label className="form-label">Archivo PDF del proyecto *</label>
+        <div className={`file-drop ${drag?'drag-over':''}`}
+          onClick={()=>fileRef.current?.click()} onDragOver={e=>{e.preventDefault();setDrag(true)}} onDragLeave={()=>setDrag(false)} onDrop={onDrop}>
+          {file ? (
+            <div><div className="file-icon">📄</div><p style={{fontWeight:500}}>{file.name}</p><small>{(file.size/1024/1024).toFixed(2)} MB</small></div>
+          ) : (
+            <div><div className="file-icon">📁</div><p>Arrastra tu PDF aquí o haz clic para seleccionar</p><small>Solo PDF, máximo 10 MB</small></div>
+          )}
+          <input ref={fileRef} type="file" accept="application/pdf" style={{display:'none'}} onChange={e=>handleFile(e.target.files[0])} />
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+// ─── ROUTING ──────────────────────────────────────────────────────────────────
+function ProtectedRoute({ children, roles }) {
+  const { user, loading } = useAuth();
+  const hash = useHash();
+  if (loading) return <div className="loading-center" style={{height:'100vh'}}><div className="spinner"></div></div>;
+  if (!user) { navigate('/login'); return null; }
+  if (roles && !roles.includes(user.role)) { navigate(`/${user.role}/dashboard`); return null; }
+  return children;
+}
+
+function Router() {
+  const hash = useHash();
+  const path = hash.replace('#','').split('?')[0];
+
+  const routes = {
+    '/login': () => <LoginPage />,
+    '/register': () => <RegisterPage />,
+    '/verify-email': () => <VerifyEmailPage />,
+    '/admin/dashboard': () => <ProtectedRoute roles={['admin']}><AdminDashboard /></ProtectedRoute>,
+    '/admin/rubrics': () => <ProtectedRoute roles={['admin']}><RubricsPage /></ProtectedRoute>,
+    '/admin/contests': () => <ProtectedRoute roles={['admin']}><ContestsPage /></ProtectedRoute>,
+    '/admin/users': () => <ProtectedRoute roles={['admin']}><UsersPage /></ProtectedRoute>,
+    '/admin/assignments': () => <ProtectedRoute roles={['admin']}><AssignmentsPage /></ProtectedRoute>,
+    '/reviewer/dashboard': () => <ProtectedRoute roles={['reviewer']}><ReviewerDashboard /></ProtectedRoute>,
+  };
+
+  // Dynamic routes
+  if (path.startsWith('/reviewer/contest/')) return <ProtectedRoute roles={['reviewer']}><ReviewerContestPage /></ProtectedRoute>;
+  if (path.startsWith('/reviewer/evaluate/')) return <ProtectedRoute roles={['reviewer']}><EvaluationPage /></ProtectedRoute>;
+  if (path === '/student/dashboard') return <ProtectedRoute roles={['student']}><StudentDashboard /></ProtectedRoute>;
+
+  const render = routes[path];
+  if (render) return render();
+
+  // Default redirect
+  return <LoginPage />;
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <Router />
+    </AuthProvider>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>
