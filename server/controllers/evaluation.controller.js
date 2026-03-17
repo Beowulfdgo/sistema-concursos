@@ -1,6 +1,8 @@
+const mongoose = require('mongoose');
 const Evaluation = require('../models/Evaluation');
 const Project = require('../models/Project');
 const Rubric = require('../models/Rubric');
+const Contest = require('../models/Contest');
 
 const calcTotals = (sections) => {
   let total = 0;
@@ -39,12 +41,21 @@ exports.createEvaluation = async (req, res, next) => {
   try {
     const { projectId, sections, generalComments, plagiarismPercentage, aiPercentage, status } = req.body;
 
-    const project = await Project.findById(projectId).populate('contestId', 'rubricId');
+    if (!projectId) return res.status(400).json({ message: 'Falta projectId' });
+
+    const project = await Project.findById(projectId);
     if (!project) return res.status(404).json({ message: 'Proyecto no encontrado' });
 
-    const rubricId = project.contestId.rubricId;
+    const contestId = project.contestId ? new mongoose.Types.ObjectId(project.contestId.toString()) : null;
+    if (!contestId) return res.status(400).json({ message: 'El proyecto no tiene concurso asociado' });
+
+    const contest = await Contest.findById(contestId).select('rubricId');
+    if (!contest) return res.status(400).json({ message: 'Concurso no encontrado' });
+    const rubricId = contest.rubricId ? new mongoose.Types.ObjectId(contest.rubricId.toString()) : null;
+    if (!rubricId) return res.status(400).json({ message: 'El concurso no tiene rúbrica asignada. Asigna una rúbrica al concurso en Admin → Concursos → Editar.' });
+
     const rubric = await Rubric.findById(rubricId);
-    if (!rubric) return res.status(400).json({ message: 'El concurso no tiene rúbrica asignada' });
+    if (!rubric) return res.status(400).json({ message: 'Rúbrica no encontrada' });
 
     // Build sections from rubric if not provided
     let evalSections = sections;
@@ -65,19 +76,25 @@ exports.createEvaluation = async (req, res, next) => {
     }
 
     const totalScore = calcTotals(evalSections);
-    const ev = await Evaluation.create({
-      projectId,
-      contestId: project.contestId._id,
-      reviewerId: req.user._id,
-      rubricId,
-      sections: evalSections,
-      generalComments,
-      plagiarismPercentage,
-      aiPercentage,
-      totalScore,
-      status: status || 'draft',
-      submittedAt: status === 'submitted' ? new Date() : undefined,
-    });
+    let ev;
+    try {
+      ev = await Evaluation.create({
+        projectId: new mongoose.Types.ObjectId(projectId.toString()),
+        contestId,
+        reviewerId: req.user._id,
+        rubricId,
+        sections: evalSections,
+        generalComments: generalComments || '',
+        plagiarismPercentage: plagiarismPercentage != null && plagiarismPercentage !== '' ? Number(plagiarismPercentage) : undefined,
+        aiPercentage: aiPercentage != null && aiPercentage !== '' ? Number(aiPercentage) : undefined,
+        totalScore,
+        status: status || 'draft',
+        submittedAt: status === 'submitted' ? new Date() : undefined,
+      });
+    } catch (createErr) {
+      if (createErr.name === 'ValidationError') return res.status(400).json({ message: createErr.message || 'Datos de evaluación inválidos' });
+      throw createErr;
+    }
 
     if (status === 'submitted') {
       await project.updateOne({ status: 'under_review' });

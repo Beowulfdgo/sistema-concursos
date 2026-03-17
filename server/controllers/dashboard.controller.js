@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Contest = require('../models/Contest');
 const Project = require('../models/Project');
 const Evaluation = require('../models/Evaluation');
@@ -44,20 +45,26 @@ exports.studentDashboard = async (req, res, next) => {
 
 exports.reviewerDashboard = async (req, res, next) => {
   try {
-    const assignments = await Assignment.find({ reviewerId: req.user._id })
+    // Usar el mismo criterio que en GET /assignments (reviewerId = req.user._id)
+    const reviewerId = req.user._id;
+    const assignments = await Assignment.find({ reviewerId })
       .populate('contestId', 'name status startDate endDate')
       .populate('projectIds', 'title status finalScore');
 
-    const evaluations = await Evaluation.find({ reviewerId: req.user._id });
-    const submittedIds = new Set(evaluations.filter(e => e.status === 'submitted').map(e => e.projectId.toString()));
+    const evaluations = await Evaluation.find({ reviewerId });
+    const submittedIds = new Set(evaluations.filter(e => e.status === 'submitted').map(e => (e.projectId && e.projectId.toString()) || ''));
 
-    const summary = assignments.map(a => ({
-      contest: a.contestId,
-      totalProjects: a.projectIds.length,
-      evaluated: a.projectIds.filter(p => submittedIds.has(p._id.toString())).length,
-      pending: a.projectIds.filter(p => !submittedIds.has(p._id.toString())).length,
-      projects: a.projectIds,
-    }));
+    const toProjectId = (p) => (p && (p._id || p).toString()) || '';
+    const summary = assignments.map(a => {
+      const ids = (a.projectIds || []);
+      return {
+        contest: a.contestId,
+        totalProjects: ids.length,
+        evaluated: ids.filter(p => submittedIds.has(toProjectId(p))).length,
+        pending: ids.filter(p => !submittedIds.has(toProjectId(p))).length,
+        projects: ids,
+      };
+    });
 
     res.json({ summary });
   } catch (err) { next(err); }

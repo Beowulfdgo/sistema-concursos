@@ -1,5 +1,6 @@
 const path = require('path');
 const fs = require('fs');
+const mongoose = require('mongoose');
 const Project = require('../models/Project');
 const Contest = require('../models/Contest');
 const Assignment = require('../models/Assignment');
@@ -13,10 +14,13 @@ exports.getProjects = async (req, res, next) => {
     if (req.user.role === 'student') {
       filter.representative = req.user._id;
     } else if (req.user.role === 'reviewer') {
-      // Only assigned projects
-      const assignments = await Assignment.find({ reviewerId: req.user._id, ...(contestId ? { contestId } : {}) });
-      const projectIds = assignments.flatMap(a => a.projectIds);
-      filter._id = { $in: projectIds };
+      const reviewerId = new mongoose.Types.ObjectId(req.user._id.toString());
+      const assignmentFilter = { reviewerId };
+      if (contestId) assignmentFilter.contestId = new mongoose.Types.ObjectId(contestId);
+      const assignments = await Assignment.find(assignmentFilter);
+      const projectIds = assignments.flatMap(a => (a.projectIds || []).map(id => id._id || id));
+      if (projectIds.length === 0) filter._id = { $in: [] };
+      else filter._id = { $in: projectIds };
     }
 
     const projects = await Project.find(filter)

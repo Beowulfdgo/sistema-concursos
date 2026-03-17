@@ -1146,15 +1146,35 @@ function ReviewerLayout({ children, title, actions, path }) {
 function ReviewerDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  useEffect(() => { ax.get('/dashboard/reviewer').then(r=>setData(r.data)).finally(()=>setLoading(false)); }, []);
+  const [error, setError] = useState(null);
+  useEffect(() => {
+    ax.get('/dashboard/reviewer')
+      .then(r => { setData(r.data); setError(null); })
+      .catch(err => { setData({ summary: [] }); setError(err.response?.data?.message || err.message || 'Error al cargar'); })
+      .finally(() => setLoading(false));
+  }, []);
 
   if (loading) return <ReviewerLayout title="Dashboard" path="/reviewer/dashboard"><Spinner /></ReviewerLayout>;
 
+  // Aceptar tanto { summary } como { assignments, stats }
+  const summary = data?.summary ?? (data?.assignments || []).map(a => {
+    const ids = a.projectIds || [];
+    const evaluated = ids.filter(p => p && (p.status === 'evaluated')).length;
+    const pending = ids.length - evaluated;
+    return {
+      contest: a.contestId,
+      totalProjects: ids.length,
+      evaluated,
+      pending,
+      projects: ids,
+    };
+  });
   return (
     <ReviewerLayout title="Mis Concursos" path="/reviewer/dashboard">
-      {data?.summary?.length === 0 && <div className="empty-state"><div className="empty-icon">📭</div><h3>Sin asignaciones</h3><p>El administrador no te ha asignado proyectos aún</p></div>}
+      {error && <div className="alert alert-danger" style={{marginBottom:16}}>{error}</div>}
+      {summary.length === 0 && !error && <div className="empty-state"><div className="empty-icon">📭</div><h3>Sin asignaciones</h3><p>El administrador no te ha asignado proyectos aún</p></div>}
       <div style={{display:'grid',gap:16}}>
-        {data?.summary?.map((s,i) => (
+        {summary.map((s,i) => (
           <div className="card" key={i} style={{padding:'20px 24px'}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
               <div>

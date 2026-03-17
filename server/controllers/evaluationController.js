@@ -1,6 +1,8 @@
+const mongoose = require('mongoose');
 const Evaluation = require('../models/Evaluation');
 const Project = require('../models/Project');
 const Rubric = require('../models/Rubric');
+const Contest = require('../models/Contest');
 
 exports.getProjectEvaluations = async (req, res, next) => {
   try {
@@ -26,17 +28,39 @@ exports.getEvaluation = async (req, res, next) => {
 
 exports.createOrUpdateEvaluation = async (req, res, next) => {
   try {
-    const { projectId, contestId, sections, generalComments, plagiarismPercentage, aiPercentage, status } = req.body;
+    const { projectId, sections, generalComments, plagiarismPercentage, aiPercentage, status } = req.body;
+
+    if (!projectId) return res.status(400).json({ message: 'Falta projectId' });
+
+    const project = await Project.findById(projectId).lean();
+    if (!project) return res.status(404).json({ message: 'Proyecto no encontrado' });
+
+    const contestIdRaw = project.contestId;
+    if (!contestIdRaw) return res.status(400).json({ message: 'El proyecto no tiene concurso asociado' });
+    const contestId = new mongoose.Types.ObjectId(contestIdRaw.toString());
+
+    const contest = await Contest.findById(contestId).select('rubricId').lean();
+    if (!contest) return res.status(400).json({ message: 'Concurso no encontrado' });
+    const rubricIdRaw = contest.rubricId;
+    if (!rubricIdRaw) return res.status(400).json({ message: 'El concurso no tiene rúbrica asignada. Asigna una rúbrica al concurso en Admin → Concursos → Editar.' });
+    const rubricId = new mongoose.Types.ObjectId(rubricIdRaw.toString());
 
     let evaluation = await Evaluation.findOne({ projectId, reviewerId: req.user.id });
     if (evaluation && evaluation.status === 'submitted')
       return res.status(400).json({ message: 'Esta evaluación ya fue enviada y no puede modificarse.' });
 
-    // Get rubric from project's contest
-    const project = await Project.findById(projectId).populate('contestId');
-    const rubricId = project?.contestId?.rubricId;
-
-    const evalData = { projectId, contestId, reviewerId: req.user.id, rubricId, sections, generalComments, plagiarismPercentage, aiPercentage, status: status || 'draft' };
+    const reviewerId = new mongoose.Types.ObjectId((req.user.id || req.user._id).toString());
+    const evalData = {
+      projectId: new mongoose.Types.ObjectId(projectId.toString()),
+      contestId,
+      reviewerId,
+      rubricId,
+      sections: sections || [],
+      generalComments: generalComments || '',
+      plagiarismPercentage: plagiarismPercentage != null && plagiarismPercentage !== '' ? Number(plagiarismPercentage) : undefined,
+      aiPercentage: aiPercentage != null && aiPercentage !== '' ? Number(aiPercentage) : undefined,
+      status: status || 'draft',
+    };
 
     if (evaluation) {
       Object.assign(evaluation, evalData);
