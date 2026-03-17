@@ -46,6 +46,10 @@ exports.createEvaluation = async (req, res, next) => {
     const project = await Project.findById(projectId);
     if (!project) return res.status(404).json({ message: 'Proyecto no encontrado' });
 
+    // Check if reviewer already has an evaluation for this project
+    const existingEvaluation = await Evaluation.findOne({ projectId, reviewerId: req.user._id });
+    if (existingEvaluation) return res.status(400).json({ message: 'Ya tienes una evaluación para este proyecto. Usa actualizar en su lugar.' });
+
     const contestId = project.contestId ? new mongoose.Types.ObjectId(project.contestId.toString()) : null;
     if (!contestId) return res.status(400).json({ message: 'El proyecto no tiene concurso asociado' });
 

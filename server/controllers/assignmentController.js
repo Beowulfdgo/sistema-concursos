@@ -8,7 +8,7 @@ exports.getAssignments = async (req, res, next) => {
 
     const assignments = await Assignment.find(filter)
       .populate('reviewerId', 'name email')
-      .populate('projectIds', 'title registrationNumber status finalScore')
+      .populate('projectIds', req.user.role === 'reviewer' ? 'title registrationNumber status' : 'title registrationNumber status finalScore')
       .populate('contestId', 'name status');
     res.json(assignments);
   } catch (err) { next(err); }

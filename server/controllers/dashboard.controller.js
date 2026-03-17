@@ -49,7 +49,7 @@ exports.reviewerDashboard = async (req, res, next) => {
     const reviewerId = req.user._id;
     const assignments = await Assignment.find({ reviewerId })
       .populate('contestId', 'name status startDate endDate')
-      .populate('projectIds', 'title status finalScore');
+      .populate('projectIds', 'title status registrationNumber');
 
     const evaluations = await Evaluation.find({ reviewerId });
     const submittedIds = new Set(evaluations.filter(e => e.status === 'submitted').map(e => (e.projectId && e.projectId.toString()) || ''));
