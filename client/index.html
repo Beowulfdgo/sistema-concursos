@@ -1348,8 +1348,22 @@ function EvaluationPage() {
           <div><span style={{fontSize:12,color:'var(--text-3)'}}>PROYECTO</span><div style={{fontWeight:600}}>{project?.title}</div></div>
           <div><span style={{fontSize:12,color:'var(--text-3)'}}>REPRESENTANTE</span><div>{project?.representative?.name}</div></div>
           <div><span style={{fontSize:12,color:'var(--text-3)'}}>CATEGORÍA</span><div>{project?.categoryName}</div></div>
-          {project?.filePath && <a href={`${API}/projects/${project._id}/file`} target="_blank" rel="noreferrer"><button className="btn btn-secondary btn-sm">📄 Ver PDF</button></a>}
-        </div>
+         {project?.filePath && (
+  <button className="btn btn-secondary btn-sm" onClick={async () => {
+    try {
+      const response = await ax.get(`/projects/${project._id}/file`, {
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      window.open(url, '_blank');
+    } catch (err) {
+      alert('No se pudo cargar el PDF');
+    }
+  }}>
+    📄 Ver PDF
+  </button>
+)}
+          </div>
       </div>
 
       {/* Score summary */}
