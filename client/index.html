@@ -1209,17 +1209,21 @@ function ReviewerContestPage() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    ax.get('/assignments', { params: { contestId } })
-      .then(r => {
-        // Buscar el assignment que corresponde a este concurso
-        const assignment = r.data.find(a =>
-          (a.contestId?._id || a.contestId) === contestId
-        );
-        setProjects(assignment?.projects || []);
-      })
-      .finally(() => setLoading(false));
-  }, []);
+useEffect(() => {
+
+  
+  ax.get('/assignments', { params: { contestId } })
+    .then(r => {
+     
+      
+      const assignment = r.data.find(a =>
+        (a.contestId?._id || a.contestId) === contestId
+      );
+
+      setProjects(assignment?.projects || assignment?.projectIds || []);
+    })
+    .finally(() => setLoading(false));
+}, []);
 
   return (
     <ReviewerLayout title="Proyectos Asignados" path="/reviewer/dashboard"

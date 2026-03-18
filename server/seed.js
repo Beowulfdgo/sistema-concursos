@@ -9,6 +9,9 @@ async function seed() {
   await Promise.all([User.deleteMany({}), Rubric.deleteMany({}), Contest.deleteMany({})]);
   const admin = await User.create({ name:'Administrador CNPPE', email:'admin@cnppe.mx', password:'admin1234', role:'admin', status:'active' });
   await User.create({ name:'Ernesto Valadez', email:'revisor@cnppe.mx', password:'revisor1234', role:'reviewer', status:'active' });
+  await User.create({ name:'Antonio flores', email:'antonioflores30@hotmail.com', password:'revisor1234', role:'reviewer', status:'active' });
+  await User.create({ name:'Oscar Vacio ', email:'revisor2@cnppe.mx', password:'revisor1234', role:'reviewer', status:'active' });
+  await User.create({ name:'Veronica Rebe ', email:'veronicarebe69@hotmail.com', password:'revisor1234', role:'reviewer', status:'active' });
   await User.create({ name:'Alumno Demo', email:'alumno@cnppe.mx', password:'alumno1234', role:'student', status:'active' });
   await User.create({ name:'Alumno Demo 2', email:'alumno2@cnppe.mx', password:'alumno1234', role:'student', status:'active' }); 
   const rubricTec = await Rubric.create({
@@ -53,7 +56,7 @@ async function seed() {
 
   await Contest.create({
     name:'Concurso Nacional de Prototipos XXVIII - Fase Estatal 2026',
-    description:'CNPPE Edicion XXVIII, Anio 2026',
+    description:'CNPPE Edicion XXVIII, Año 2026',
     startDate: new Date('2026-01-01'), endDate: new Date('2026-12-31'),
     periodicity:'annual', status:'active', rubricId: rubricTec._id,
     categories:[{name:'Mejora de procesos productivos, telecomunicaciones y electromovilidad'},{name:'Medio ambiente, energías renovables y sustentabilidad'},{name:'Educación, desarrollo social y sistemas económico-administrativos'},{name:'Biotecnología, innovación en alimentos y nutrición'}],

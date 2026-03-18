@@ -1,46 +1,67 @@
 const Assignment = require('../models/Assignment');
+const Evaluation = require('../models/Evaluation'); 
 
 exports.getAssignments = async (req, res, next) => {
   try {
+    const userId = req.user._id || req.user.id; // ← fix aquí
     const filter = {};
-    if (req.user.role === 'reviewer') filter.reviewerId = req.user.id;
+    if (req.user.role === 'reviewer') filter.reviewerId = userId;
     if (req.query.contestId) filter.contestId = req.query.contestId;
 
     const assignments = await Assignment.find(filter)
       .populate('reviewerId', 'name email')
-      .populate('projectIds', req.user.role === 'reviewer' ? 'title registrationNumber status' : 'title registrationNumber status finalScore')
-      .populate('contestId', 'name status');
-    res.json(assignments);
+      .populate('contestId', 'name status')
+      .populate('projectIds', 'title status categoryName representative')
+      .sort('-createdAt');
+
+    const enriched = await Promise.all(
+      assignments.map(async (assignment) => {
+        const obj = assignment.toObject();
+        obj.projects = await Promise.all(
+          (obj.projectIds || []).map(async (project) => {
+            const myEval = await Evaluation.findOne({
+              projectId: project._id,
+              reviewerId: userId // ← fix aquí también
+            }).select('status totalScore _id submittedAt');
+            return {
+              ...project,
+              myEvaluation: myEval || null
+            };
+          })
+        );
+        return obj;
+      })
+    );
+
+    res.json(enriched);
   } catch (err) { next(err); }
 };
 
 exports.createAssignment = async (req, res, next) => {
   try {
     const { contestId, reviewerId, projectIds } = req.body;
-    let assignment = await Assignment.findOne({ contestId, reviewerId });
-    if (assignment) {
-      assignment.projectIds = [...new Set([...assignment.projectIds.map(String), ...projectIds])];
-      await assignment.save();
-    } else {
-      assignment = await Assignment.create({ contestId, reviewerId, projectIds, assignedBy: req.user.id });
-    }
-    const populated = await assignment.populate(['reviewerId', 'projectIds', 'contestId']);
-    res.status(201).json(populated);
+    // Upsert: one assignment per reviewer per contest
+    const assignment = await Assignment.findOneAndUpdate(
+      { contestId, reviewerId },
+      { projectIds, assignedBy: req.user._id },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+    res.status(201).json(assignment);
   } catch (err) { next(err); }
 };
 
 exports.updateAssignment = async (req, res, next) => {
   try {
-    const assignment = await Assignment.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!assignment) return res.status(404).json({ message: 'Asignación no encontrada.' });
-    res.json(assignment);
+    const { projectIds } = req.body;
+    const a = await Assignment.findByIdAndUpdate(req.params.id, { projectIds }, { new: true });
+    if (!a) return res.status(404).json({ message: 'Asignación no encontrada' });
+    res.json(a);
   } catch (err) { next(err); }
 };
 
 exports.deleteAssignment = async (req, res, next) => {
   try {
-    const assignment = await Assignment.findByIdAndDelete(req.params.id);
-    if (!assignment) return res.status(404).json({ message: 'Asignación no encontrada.' });
-    res.json({ message: 'Asignación eliminada.' });
+    await Assignment.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Asignación eliminada' });
   } catch (err) { next(err); }
 };

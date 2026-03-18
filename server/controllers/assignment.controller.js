@@ -3,8 +3,9 @@ const Evaluation = require('../models/Evaluation');
 
 exports.getAssignments = async (req, res, next) => {
   try {
+    const userId = req.user._id || req.user.id; // ← fix aquí
     const filter = {};
-    if (req.user.role === 'reviewer') filter.reviewerId = req.user._id;
+    if (req.user.role === 'reviewer') filter.reviewerId = userId;
     if (req.query.contestId) filter.contestId = req.query.contestId;
 
     const assignments = await Assignment.find(filter)
@@ -13,25 +14,21 @@ exports.getAssignments = async (req, res, next) => {
       .populate('projectIds', 'title status categoryName representative')
       .sort('-createdAt');
 
-    // Enriquecer cada proyecto con la evaluación del revisor actual
     const enriched = await Promise.all(
       assignments.map(async (assignment) => {
         const obj = assignment.toObject();
-
         obj.projects = await Promise.all(
           (obj.projectIds || []).map(async (project) => {
             const myEval = await Evaluation.findOne({
               projectId: project._id,
-              reviewerId: req.user._id
+              reviewerId: userId // ← fix aquí también
             }).select('status totalScore _id submittedAt');
-
             return {
               ...project,
               myEvaluation: myEval || null
             };
           })
         );
-
         return obj;
       })
     );
