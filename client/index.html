@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Concursos de Investigación — CNPPE</title>
+  <title>Concursos de Investigación — CNCA</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
   <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
@@ -445,7 +445,7 @@ function LoginPage() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-logo">
-          <h1>🏆 CNPPE</h1>
+          <h1>🏆 CNCA</h1>
           <p>Concursos de Investigación</p>
         </div>
         <h2 className="auth-title">Iniciar Sesión</h2>
@@ -468,6 +468,8 @@ function LoginPage() {
         </form>
         <div className="auth-footer">
           ¿No tienes cuenta? <a onClick={() => navigate('/register')}>Regístrate</a>
+          
+          <div class="auth-version">Ver 1.0.0 <a href="https://github.com/Beowulfdgo/sistema-concursos" target="_blank" rel="noopener noreferrer">GitHub</a></div>
         </div>
       </div>
     </div>
@@ -584,7 +586,7 @@ function AppLayout({ children, title, actions, navItems, currentPath }) {
     <div className="app-layout">
       <aside className="sidebar">
         <div className="sidebar-logo">
-          <h1>🏆 CNPPE</h1>
+          <h1>🏆 CNCA</h1>
           <p>Gestión de Concursos</p>
         </div>
         <nav className="sidebar-nav">
@@ -633,9 +635,9 @@ const ADMIN_NAV = [
   { label:'Gestión', items: [
     { path:'/admin/users', icon:'👥', label:'Usuarios' },
     { path:'/admin/assignments', icon:'🔗', label:'Asignaciones' },
+    { path:'/admin/results', icon:'🥇', label:'Resultados' },  // ← NUEVO
   ]},
 ];
-
 function AdminLayout({ children, title, actions, path }) {
   return <AppLayout title={title} actions={actions} navItems={ADMIN_NAV} currentPath={path}>{children}</AppLayout>;
 }
@@ -1602,7 +1604,152 @@ function UploadProjectModal({ contests, onClose, onSaved }) {
     </Modal>
   );
 }
+// ─── RESULTS PAGE ─────────────────────────────────────────────────────────────
+function ResultsPage() {
+  const [contests, setContests] = useState([]);
+  const [selContest, setSelContest] = useState('');
+  const [ranking, setRanking] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
+  useEffect(() => {
+    ax.get('/contests').then(r => setContests(r.data));
+  }, []);
+
+  useEffect(() => {
+    if (!selContest) { setRanking(null); return; }
+    setLoading(true);
+    ax.get(`/dashboard/rankings-grouped/${selContest}`)
+      .then(r => setRanking(r.data))
+      .catch(() => setRanking(null))
+      .finally(() => setLoading(false));
+  }, [selContest]);
+
+  const exportExcel = async () => {
+    if (!selContest) return;
+    setExporting(true);
+    try {
+      const response = await ax.get(`/dashboard/export/${selContest}`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `calificaciones_${selContest}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch { alert('Error al exportar'); }
+    setExporting(false);
+  };
+
+  const medals = ['🥇', '🥈', '🥉'];
+
+  return (
+    <AdminLayout title="Resultados y Exportación" path="/admin/results"
+      actions={
+        <button className="btn btn-success" onClick={exportExcel} disabled={!selContest || exporting}>
+          {exporting ? 'Exportando...' : '📥 Exportar Calificaciones a Excel'}
+        </button>
+      }>
+
+      {/* Selector de concurso */}
+      <div className="card" style={{ marginBottom: 24 }}>
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label className="form-label">Selecciona un concurso</label>
+          <select className="form-select" value={selContest} onChange={e => setSelContest(e.target.value)}>
+            <option value="">— Selecciona un concurso —</option>
+            {contests.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {/* Estado vacío */}
+      {!selContest && (
+        <div className="empty-state">
+          <div className="empty-icon">🏆</div>
+          <h3>Selecciona un concurso</h3>
+          <p>Elige un concurso para ver los resultados por categoría</p>
+        </div>
+      )}
+
+      {/* Loading */}
+      {loading && <Spinner />}
+
+      {/* Resultados agrupados por categoría */}
+      {!loading && ranking && (
+        <div>
+          <div style={{ marginBottom: 20 }}>
+            <h2 style={{ fontSize: 20, fontWeight: 700 }}>{ranking.contestName}</h2>
+            <p style={{ color: 'var(--text-2)', fontSize: 14, marginTop: 4 }}>
+              {ranking.categories.reduce((t, c) => t + c.projects.length, 0)} proyectos en {ranking.categories.length} categorías
+            </p>
+          </div>
+
+          {ranking.categories.length === 0 && (
+            <div className="empty-state">
+              <div className="empty-icon">📂</div>
+              <p>No hay proyectos registrados en este concurso</p>
+            </div>
+          )}
+
+          {ranking.categories.map((cat, ci) => (
+            <div key={ci} style={{ marginBottom: 28 }}>
+              {/* Header categoría */}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12,
+                padding: '10px 16px', background: 'var(--primary)', borderRadius: 10, color: '#fff'
+              }}>
+                <span style={{ fontSize: 20 }}>🏷️</span>
+                <h3 style={{ fontSize: 16, fontWeight: 700 }}>{cat.categoryName}</h3>
+                <span style={{ marginLeft: 'auto', fontSize: 13, opacity: .8 }}>
+                  {cat.projects.length} proyecto{cat.projects.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+
+              {/* Proyectos */}
+              <div style={{ display: 'grid', gap: 10 }}>
+                {cat.projects.map((p, pi) => (
+                  <div className="card" key={p.projectId} style={{ padding: '16px 20px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                      {/* Lugar */}
+                      <div style={{ textAlign: 'center', flexShrink: 0, width: 48 }}>
+                        <div style={{ fontSize: pi < 3 ? 28 : 18 }}>{medals[pi] || `${pi + 1}°`}</div>
+                        {pi >= 3 && <div style={{ fontSize: 11, color: 'var(--text-3)' }}>lugar</div>}
+                      </div>
+
+                      {/* Info */}
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, fontSize: 15 }}>{p.title}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 2 }}>
+                          📋 {p.registrationNumber || '—'}
+                        </div>
+                        {p.teamMembers?.length > 0 && (
+                          <div style={{ fontSize: 13, color: 'var(--text-2)', marginTop: 6 }}>
+                            👥 {p.teamMembers.map(m => m.name).join(', ')}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Score y status */}
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        {p.finalScore != null ? (
+                          <div>
+                            <span className="score-pill" style={{ fontSize: 18 }}>{p.finalScore.toFixed(2)}</span>
+                            <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 4 }}>calificación final</div>
+                          </div>
+                        ) : (
+                          <Badge status={p.status} />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </AdminLayout>
+  );
+}
 // ─── ROUTING ──────────────────────────────────────────────────────────────────
 function ProtectedRoute({ children, roles }) {
   const { user, loading } = useAuth();
@@ -1627,6 +1774,7 @@ function Router() {
     '/admin/users': () => <ProtectedRoute roles={['admin']}><UsersPage /></ProtectedRoute>,
     '/admin/assignments': () => <ProtectedRoute roles={['admin']}><AssignmentsPage /></ProtectedRoute>,
     '/reviewer/dashboard': () => <ProtectedRoute roles={['reviewer']}><ReviewerDashboard /></ProtectedRoute>,
+    '/admin/results': () => <ProtectedRoute roles={['admin']}><ResultsPage /></ProtectedRoute>, 
   };
 
   // Dynamic routes

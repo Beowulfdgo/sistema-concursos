@@ -77,3 +77,104 @@ exports.getReviewerDashboard = async (req, res, next) => {
     res.json({ assignments: enrichedAssignments, stats });
   } catch (err) { next(err); }
 };
+
+exports.getContestRankingGrouped = async (req, res, next) => {
+  try {
+    const { contestId } = req.params;
+
+    const contest = await Contest.findById(contestId).lean();
+    if (!contest) return res.status(404).json({ message: 'Concurso no encontrado' });
+
+    // Traer todos los proyectos del concurso con equipo
+    const projects = await Project.find({ contestId })
+      .populate('representative', 'name email')
+      .sort({ finalScore: -1 })
+      .lean();
+
+    // Agrupar por categoría
+    const categoryMap = {};
+
+    // Inicializar categorías del concurso en orden
+    (contest.categories || []).forEach(cat => {
+      categoryMap[cat._id.toString()] = {
+        categoryId: cat._id,
+        categoryName: cat.name,
+        projects: []
+      };
+    });
+
+    // Categoría sin asignar
+    categoryMap['sin_categoria'] = {
+      categoryId: null,
+      categoryName: 'Sin categoría',
+      projects: []
+    };
+
+    projects.forEach(p => {
+      const key = p.categoryId ? p.categoryId.toString() : 'sin_categoria';
+      if (!categoryMap[key]) {
+        categoryMap[key] = {
+          categoryId: p.categoryId,
+          categoryName: p.categoryName || 'Sin categoría',
+          projects: []
+        };
+      }
+      categoryMap[key].projects.push({
+        projectId: p._id,
+        title: p.title,
+        registrationNumber: p.registrationNumber,
+        finalScore: p.finalScore ?? null,
+        status: p.status,
+        teamMembers: p.teamMembers || [],
+        representative: p.representative
+      });
+    });
+
+    // Filtrar categorías vacías y ordenar proyectos por score desc
+    const categories = Object.values(categoryMap)
+      .filter(c => c.projects.length > 0)
+      .map(c => ({
+        ...c,
+        projects: c.projects.sort((a, b) => (b.finalScore ?? -1) - (a.finalScore ?? -1))
+      }));
+
+    res.json({
+      contestId: contest._id,
+      contestName: contest.name,
+      categories
+    });
+  } catch (err) { next(err); }
+};
+
+exports.exportContestExcel = async (req, res, next) => {
+  try {
+    const { contestId } = req.params;
+
+    const contest = await Contest.findById(contestId).lean();
+    if (!contest) return res.status(404).json({ message: 'Concurso no encontrado' });
+
+    const projects = await Project.find({ contestId })
+      .populate('representative', 'name email')
+      .sort({ categoryName: 1, finalScore: -1 })
+      .lean();
+
+    // Construir CSV
+    const rows = [
+      ['Categoría', 'Nombre del Proyecto', 'No. Registro', 'Alumnos Participantes', 'Calificación Final']
+    ];
+
+    projects.forEach(p => {
+      const categoria = p.categoryName || 'Sin categoría';
+      const alumnos = (p.teamMembers || []).map(m => m.name).join('; ') || p.representative?.name || '—';
+      const score = p.finalScore != null ? p.finalScore.toFixed(2) : 'Pendiente';
+      rows.push([categoria, p.title, p.registrationNumber || '—', alumnos, score]);
+    });
+
+    const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const filename = `calificaciones_${contest.name.replace(/\s+/g, '_')}.csv`;
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send('\uFEFF' + csv); // BOM para Excel
+  } catch (err) { next(err); }
+};
