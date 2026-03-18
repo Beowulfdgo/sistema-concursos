@@ -1159,7 +1159,7 @@ function ReviewerDashboard() {
   // Aceptar tanto { summary } como { assignments, stats }
   const summary = data?.summary ?? (data?.assignments || []).map(a => {
     const ids = a.projectIds || [];
-    const evaluated = ids.filter(p => p && (p.status === 'evaluated')).length;
+    const evaluated = ids.filter(p => p?.myEvaluation?.status === 'submitted').length;
     const pending = ids.length - evaluated;
     return {
       contest: a.contestId,
@@ -1208,40 +1208,54 @@ function ReviewerContestPage() {
   const contestId = window.location.hash.split('/').pop();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
-  useEffect(() => { ax.get('/projects', { params:{ contestId }}).then(r=>setProjects(r.data)).finally(()=>setLoading(false)); }, []);
+
+  useEffect(() => {
+    ax.get('/assignments', { params: { contestId } })
+      .then(r => {
+        // Buscar el assignment que corresponde a este concurso
+        const assignment = r.data.find(a =>
+          (a.contestId?._id || a.contestId) === contestId
+        );
+        setProjects(assignment?.projects || []);
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   return (
     <ReviewerLayout title="Proyectos Asignados" path="/reviewer/dashboard"
       actions={<button className="btn btn-secondary btn-sm" onClick={()=>navigate('/reviewer/dashboard')}>← Volver</button>}>
-      {loading ? <Spinner /> : projects.length===0 ? (
+      {loading ? <Spinner /> : projects.length === 0 ? (
         <div className="empty-state"><div className="empty-icon">📂</div><h3>Sin proyectos</h3></div>
       ) : (
         <div style={{display:'grid',gap:12}}>
-          {projects.map(p=>(
-            <div className="card" key={p._id} style={{padding:'16px 20px'}}>
-              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                <div>
-                  <strong>{p.title}</strong>
-                  <div style={{fontSize:13,color:'var(--text-2)',marginTop:2}}>
-                    {p.representative?.name} · {p.categoryName}
+          {projects.map(p => {
+            const myEval = p.myEvaluation;
+            const iEvaluated = myEval?.status === 'submitted';
+            return (
+              <div className="card" key={p._id} style={{padding:'16px 20px'}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                  <div>
+                    <strong>{p.title}</strong>
+                    <div style={{fontSize:13,color:'var(--text-2)',marginTop:2}}>
+                      {p.representative?.name} · {p.categoryName}
+                    </div>
+                  </div>
+                  <div style={{display:'flex',gap:10,alignItems:'center'}}>
+                    {iEvaluated && <Badge status="evaluated" />}
+                    {iEvaluated && <span className="score-pill">{fmtScore(myEval.totalScore)}</span>}
+                    <button className="btn btn-primary btn-sm" onClick={()=>navigate(`/reviewer/evaluate/${p._id}`)}>
+                      {iEvaluated ? 'Ver evaluación' : 'Evaluar'}
+                    </button>
                   </div>
                 </div>
-                <div style={{display:'flex',gap:10,alignItems:'center'}}>
-                  <Badge status={p.status} />
-                  {p.finalScore !== null && <span className="score-pill">{fmtScore(p.finalScore)}</span>}
-                  <button className="btn btn-primary btn-sm" onClick={()=>navigate(`/reviewer/evaluate/${p._id}`)}>
-                    {p.status==='evaluated'?'Ver evaluación':'Evaluar'}
-                  </button>
-                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </ReviewerLayout>
   );
 }
-
 function EvaluationPage() {
   const projectId = window.location.hash.split('/').pop();
   const [project, setProject] = useState(null);

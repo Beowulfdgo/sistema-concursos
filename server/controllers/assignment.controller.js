@@ -1,4 +1,5 @@
 const Assignment = require('../models/Assignment');
+const Evaluation = require('../models/Evaluation'); 
 
 exports.getAssignments = async (req, res, next) => {
   try {
@@ -9,9 +10,33 @@ exports.getAssignments = async (req, res, next) => {
     const assignments = await Assignment.find(filter)
       .populate('reviewerId', 'name email')
       .populate('contestId', 'name status')
-      .populate('projectIds', 'title status finalScore')
+      .populate('projectIds', 'title status categoryName representative')
       .sort('-createdAt');
-    res.json(assignments);
+
+    // Enriquecer cada proyecto con la evaluación del revisor actual
+    const enriched = await Promise.all(
+      assignments.map(async (assignment) => {
+        const obj = assignment.toObject();
+
+        obj.projects = await Promise.all(
+          (obj.projectIds || []).map(async (project) => {
+            const myEval = await Evaluation.findOne({
+              projectId: project._id,
+              reviewerId: req.user._id
+            }).select('status totalScore _id submittedAt');
+
+            return {
+              ...project,
+              myEvaluation: myEval || null
+            };
+          })
+        );
+
+        return obj;
+      })
+    );
+
+    res.json(enriched);
   } catch (err) { next(err); }
 };
 

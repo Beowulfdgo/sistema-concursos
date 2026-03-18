@@ -107,6 +107,7 @@ cd client && python3 -m http.server 3000
 | Admin        | admin@cnppe.mx        | admin1234     |
 | Revisor      | revisor@cnppe.mx      | revisor1234   |
 | Alumno       | alumno@cnppe.mx       | alumno1234    |
+| Alumno2       | alumno2@cnppe.mx      | alumno1234    |
 
 ---
 

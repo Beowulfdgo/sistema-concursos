@@ -13,13 +13,15 @@ services:
     env_file:
       - server/.env
     environment:
-      # Si en .env usas localhost, puedes sobreescribirlo aquí:
       MONGO_URI: mongodb://mongo:27017/concursos_db
       NODE_ENV: production
     depends_on:
       - mongo
     volumes:
       - ./server/uploads/projects:/app/server/uploads/projects
+      - ./server:/app/server
+      - /app/server/node_modules        # ← protege node_modules del contenedor
+      - ./client:/app/client
 
   mongo:
     image: mongo:6
