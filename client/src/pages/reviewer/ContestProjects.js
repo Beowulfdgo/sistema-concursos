@@ -67,12 +67,14 @@ const ContestProjects = () => {
               <Badge variant={getStatusBadge(project.status)[1]}>
                 {getStatusBadge(project.status)[0]}
               </Badge>
-              <Button
-                size="sm"
-                onClick={() => navigate(`/reviewer/evaluate/${project._id}`)}
-              >
-                Ver evaluación
-              </Button>
+              {project.status !== 'evaluated' && (
+                <Button
+                  size="sm"
+                  onClick={() => navigate(`/reviewer/evaluate/${project._id}`)}
+                >
+                  Ver evaluación
+                </Button>
+              )}
             </div>
           </div>
         </div>

@@ -1157,18 +1157,17 @@ function ReviewerDashboard() {
   if (loading) return <ReviewerLayout title="Dashboard" path="/reviewer/dashboard"><Spinner /></ReviewerLayout>;
 
   // Aceptar tanto { summary } como { assignments, stats }
-  const summary = data?.summary ?? (data?.assignments || []).map(a => {
-    const ids = a.projectIds || [];
-    const evaluated = ids.filter(p => p?.myEvaluation?.status === 'submitted').length;
-    const pending = ids.length - evaluated;
-    return {
-      contest: a.contestId,
-      totalProjects: ids.length,
-      evaluated,
-      pending,
-      projects: ids,
-    };
-  });
+ const summary = data?.summary ?? (data?.assignments || []).map(a => {
+  const ids = a.projects || a.projectIds || [];
+  const evaluated = ids.filter(p => p?.myEvaluation?.status === 'submitted').length;
+  const pending = ids.length - evaluated;
+  return {
+    contest: a.contestId,
+    totalProjects: ids.length,
+    evaluated,
+    pending,
+  };
+});
   return (
     <ReviewerLayout title="Mis Concursos" path="/reviewer/dashboard">
       {error && <div className="alert alert-danger" style={{marginBottom:16}}>{error}</div>}
@@ -1247,9 +1246,13 @@ useEffect(() => {
                   <div style={{display:'flex',gap:10,alignItems:'center'}}>
                     {iEvaluated && <Badge status="evaluated" />}
                     {iEvaluated && <span className="score-pill">{fmtScore(myEval.totalScore)}</span>}
-                    <button className="btn btn-primary btn-sm" onClick={()=>navigate(`/reviewer/evaluate/${p._id}`)}>
-                      {iEvaluated ? 'Ver evaluación' : 'Evaluar'}
-                    </button>
+                    <button
+  className="btn btn-primary btn-sm"
+  onClick={() => !iEvaluated && navigate(`/reviewer/evaluate/${p._id}`)}
+  disabled={iEvaluated}
+>
+  {iEvaluated ? 'Ver evaluación' : 'Evaluar'}
+</button>
                   </div>
                 </div>
               </div>

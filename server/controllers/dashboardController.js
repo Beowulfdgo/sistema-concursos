@@ -42,19 +42,38 @@ exports.getStudentDashboard = async (req, res, next) => {
 
 exports.getReviewerDashboard = async (req, res, next) => {
   try {
-    const assignments = await Assignment.find({ reviewerId: req.user.id })
+    const reviewerId = req.user._id || req.user.id;
+
+    const assignments = await Assignment.find({ reviewerId })
       .populate('contestId', 'name status startDate endDate')
       .populate('projectIds', 'title registrationNumber status finalScore');
 
+    // Para cada proyecto buscar la evaluación del revisor actual
+    const enrichedAssignments = await Promise.all(
+      assignments.map(async (a) => {
+        const obj = a.toObject();
+        obj.projects = await Promise.all(
+          obj.projectIds.map(async (p) => {
+            const myEval = await Evaluation.findOne({
+              projectId: p._id,
+              reviewerId
+            }).select('status totalScore _id submittedAt');
+            return { ...p, myEvaluation: myEval || null };
+          })
+        );
+        return obj;
+      })
+    );
+
     const stats = { totalAssigned: 0, evaluated: 0, pending: 0 };
-    assignments.forEach(a => {
-      a.projectIds.forEach(p => {
+    enrichedAssignments.forEach(a => {
+      a.projects.forEach(p => {
         stats.totalAssigned++;
-        if (p.status === 'evaluated') stats.evaluated++;
+        if (p.myEvaluation?.status === 'submitted') stats.evaluated++;
         else stats.pending++;
       });
     });
 
-    res.json({ assignments, stats });
+    res.json({ assignments: enrichedAssignments, stats });
   } catch (err) { next(err); }
 };
