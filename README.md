@@ -18,10 +18,15 @@ concursos/
 │   │   ├── contest.controller.js
 │   │   ├── project.controller.js
 │   │   ├── evaluation.controller.js
+│   │   ├── evaluationController.js
 │   │   ├── assignment.controller.js
-│   │   └── dashboard.controller.js
+│   │   ├── assignmentController.js
+│   │   ├── dashboard.controller.js
+│   │   ├── dashboardController.js
+│   │   └── userController.js
 │   ├── middlewares/
 │   │   ├── auth.middleware.js   ← JWT + checkRole
+│   │   ├── auth.js
 │   │   └── upload.middleware.js ← Multer PDF
 │   ├── models/
 │   │   ├── User.js
@@ -29,18 +34,28 @@ concursos/
 │   │   ├── Contest.js
 │   │   ├── Project.js
 │   │   ├── Evaluation.js
+│   │   ├── Assignment.js
 │   │   └── Assignment.js
 │   ├── routes/
 │   │   ├── auth.routes.js
+│   │   ├── auth.js
 │   │   ├── user.routes.js
+│   │   ├── users.js
 │   │   ├── rubric.routes.js
+│   │   ├── rubrics.js
 │   │   ├── contest.routes.js
+│   │   ├── contests.js
 │   │   ├── project.routes.js
+│   │   ├── projects.js
 │   │   ├── evaluation.routes.js
+│   │   ├── evaluations.js
 │   │   ├── assignment.routes.js
-│   │   └── dashboard.routes.js
+│   │   ├── assignments.js
+│   │   ├── dashboard.routes.js
+│   │   └── dashboard.js
 │   ├── services/
-│   │   └── email.service.js     ← Nodemailer 2FA
+│   │   ├── email.service.js
+│   │   └── emailService.js
 │   ├── utils/
 │   │   └── jwt.js
 │   ├── uploads/
@@ -51,7 +66,35 @@ concursos/
 │   └── .env.example
 │
 └── client/
-    └── index.html               ← Frontend SPA (React CDN)
+    ├── index.html               ← Frontend SPA (React CDN)
+    ├── index.css
+    ├── index.js
+    ├── api/
+    │   └── axios.js
+    ├── components/
+    │   ├── common/
+    │   │   ├── Layout.js
+    │   │   └── UI.js
+    │   ├── admin/
+    │   ├── reviewer/
+    │   └── student/
+    ├── context/
+    │   ├── AuthContext.js
+    │   └── AuthContext.jsx
+    ├── hooks/
+    ├── pages/
+    │   ├── admin/
+    │   │   ├── AdminDashboard.js
+    │   │   └── [otros]
+    │   ├── reviewer/
+    │   │   ├── ReviewerDashboard.js
+    │   │   ├── EvaluateProject.js
+    │   │   └── ContestProjects.js
+    │   ├── student/
+    │   └── AuthPages.js
+    ├── routes/
+    ├── utils/
+    └── App.js
 ```
 
 ---
@@ -107,7 +150,7 @@ cd client && python3 -m http.server 3000
 | Admin        | admin@cnppe.mx        | admin1234     |
 | Revisor      | revisor@cnppe.mx      | revisor1234   |
 | Alumno       | alumno@cnppe.mx       | alumno1234    |
-| Alumno2       | alumno2@cnppe.mx      | alumno1234    |
+| Alumno2      | alumno2@cnppe.mx      | alumno1234    |
 
 ---
 
