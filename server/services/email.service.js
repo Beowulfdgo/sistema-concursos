@@ -1,21 +1,12 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-const createTransport = () => nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.EMAIL_PORT) || 587,
-  secure: false,
-  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-  tls: {
-    // Esto evita fallos de autenticación por certificados en Docker
-    rejectUnauthorized: false,
-    minVersion: 'TLSv1.2'
-  }
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const sendVerificationEmail = async (to, name, code) => {
-  const transporter = createTransport();
-  await transporter.sendMail({
-    from: `"Concursos de Investigación" <${process.env.EMAIL_USER}>`,
+  const from = process.env.EMAIL_FROM || `Concursos de Investigación <${process.env.EMAIL_USER}>`;
+
+  const { data, error } = await resend.emails.send({
+    from,
     to,
     subject: 'Verifica tu cuenta — Código de acceso',
     html: `
@@ -31,7 +22,16 @@ const sendVerificationEmail = async (to, name, code) => {
         <p style="color: #999; font-size: 12px;">Si no creaste esta cuenta, ignora este mensaje.</p>
       </div>
     `,
+    // idempotencyKey ayuda a evitar envíos duplicados por reintentos
+    idempotencyKey: `verify-email/${to}/${code}`,
   });
+
+  if (error) {
+    console.error('Resend email error:', error);
+    return;
+  }
+
+  return data; // { id: '...' }
 };
 
 module.exports = { sendVerificationEmail };
