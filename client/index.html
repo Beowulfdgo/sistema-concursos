@@ -645,6 +645,28 @@ function AdminLayout({ children, title, actions, path }) {
 function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [downloadingReviewers, setDownloadingReviewers] = useState(false);
+
+  const downloadReviewers = async () => {
+    try {
+      setDownloadingReviewers(true);
+      const response = await ax.get('/dashboard/export-reviewers', { responseType: 'blob' });
+      const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'jueces_activos.csv');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error al descargar revisores activos', error);
+    } finally {
+      setDownloadingReviewers(false);
+    }
+  };
+
   useEffect(() => {
     ax.get('/dashboard/admin').then(r => setStats(r.data)).finally(() => setLoading(false));
   }, []);
@@ -664,6 +686,16 @@ function AdminDashboard() {
             <div className="stat-value">{s.value}</div>
             <div className="stat-label">{s.label}</div>
             <div className="stat-sub">{s.sub}</div>
+            {s.label === 'Revisores' && (
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={downloadReviewers}
+                disabled={downloadingReviewers}
+                style={{ marginTop: 14, width: '100%' }}
+              >
+                {downloadingReviewers ? 'Descargando...' : 'Descargar revisores'}
+              </button>
+            )}
           </div>
         ))}
       </div>

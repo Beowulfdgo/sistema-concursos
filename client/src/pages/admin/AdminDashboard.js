@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api/axios';
-import { StatCard, Card, Badge, Spinner, PageHeader, Table, Tr, Td } from '../../components/common/UI';
+import { StatCard, Card, Badge, Button, Spinner, PageHeader, Table, Tr, Td } from '../../components/common/UI';
 
 const statusBadge = (s) => {
   const m = { submitted: ['Enviado', 'blue'], under_review: ['En revisión', 'yellow'], evaluated: ['Evaluado', 'green'] };
@@ -16,6 +16,7 @@ export default function AdminDashboard() {
   const [selectedContest, setSelectedContest] = useState('');
   const [ranking, setRanking] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [downloadingReviewers, setDownloadingReviewers] = useState(false);
 
   useEffect(() => {
     Promise.all([api.get('/dashboard/admin'), api.get('/contests')])
@@ -29,6 +30,26 @@ export default function AdminDashboard() {
     }
   }, [selectedContest]);
 
+  const downloadReviewers = async () => {
+    try {
+      setDownloadingReviewers(true);
+      const response = await api.get('/dashboard/export-reviewers', { responseType: 'blob' });
+      const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'jueces_activos.csv');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error al descargar revisores activos', error);
+    } finally {
+      setDownloadingReviewers(false);
+    }
+  };
+
   if (loading) return <Spinner />;
 
   return (
@@ -36,10 +57,22 @@ export default function AdminDashboard() {
       <PageHeader title="Dashboard" subtitle="Vista general del sistema de concursos" />
 
       {/* Stats Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16, marginBottom: 32 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 32 }}>
         <StatCard title="Concursos activos" value={stats?.activeContests ?? 0} icon="🏆" color="var(--primary)" subtitle={`de ${stats?.totalContests ?? 0} totales`} />
         <StatCard title="Proyectos registrados" value={stats?.totalProjects ?? 0} icon="📁" color="var(--secondary)" />
         <StatCard title="Evaluaciones pendientes" value={stats?.pendingEvals ?? 0} icon="⏳" color="var(--warning)" />
+        <Card style={{ padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div>
+            <p style={{ fontSize: '13px', color: 'var(--gray-500)', fontWeight: 500, marginBottom: 8 }}>Revisores</p>
+            <p style={{ fontSize: '32px', fontFamily: 'var(--font-display)', color: 'var(--success)', lineHeight: 1.1 }}>{stats?.totalReviewers ?? 0}</p>
+            <p style={{ fontSize: '12px', color: 'var(--gray-400)', marginTop: 4 }}>Evaluadores activos</p>
+          </div>
+          <div style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end' }}>
+            <Button variant="secondary" size="sm" loading={downloadingReviewers} onClick={downloadReviewers}>
+              Descargar revisores
+            </Button>
+          </div>
+        </Card>
         <StatCard title="Usuarios registrados" value={stats?.totalUsers ?? 0} icon="👤" color="var(--success)" />
       </div>
 

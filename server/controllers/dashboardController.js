@@ -6,15 +6,16 @@ const Assignment = require('../models/Assignment');
 
 exports.getAdminDashboard = async (req, res, next) => {
   try {
-    const [totalContests, activeContests, totalProjects, pendingEvals, totalUsers, recentProjects] = await Promise.all([
+    const [totalContests, activeContests, totalProjects, pendingEvals, totalUsers, totalReviewers, recentProjects] = await Promise.all([
       Contest.countDocuments(),
       Contest.countDocuments({ status: 'active' }),
       Project.countDocuments(),
       Evaluation.countDocuments({ status: 'draft' }),
       User.countDocuments({ role: { $in: ['student', 'reviewer'] } }),
+      User.countDocuments({ role: 'reviewer', status: 'active' }),
       Project.find().sort({ createdAt: -1 }).limit(5).populate('representative', 'name').populate('contestId', 'name'),
     ]);
-    res.json({ totalContests, activeContests, totalProjects, pendingEvals, totalUsers, recentProjects });
+    res.json({ totalContests, activeContests, totalProjects, pendingEvals, totalUsers, totalReviewers, recentProjects });
   } catch (err) { next(err); }
 };
 
@@ -176,5 +177,38 @@ exports.exportContestExcel = async (req, res, next) => {
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send('\uFEFF' + csv); // BOM para Excel
+  } catch (err) { next(err); }
+};
+
+exports.exportActiveReviewersExcel = async (req, res, next) => {
+  try {
+    const assignments = await Assignment.find()
+      .populate({ path: 'contestId', select: 'name startDate endDate status' })
+      .populate({ path: 'reviewerId', select: 'name status' })
+      .lean();
+
+    const rows = [
+      ['Nombre del concurso', 'Nombre del juez', 'Fecha de inicio', 'Fecha final del concurso']
+    ];
+
+    assignments
+      .filter(a => a.contestId && a.reviewerId && a.reviewerId.status === 'active' && a.contestId.status === 'active')
+      .sort((a, b) => {
+        if (a.contestId.name < b.contestId.name) return -1;
+        if (a.contestId.name > b.contestId.name) return 1;
+        return a.reviewerId.name.localeCompare(b.reviewerId.name);
+      })
+      .forEach(a => {
+        const startDate = a.contestId.startDate ? new Date(a.contestId.startDate).toLocaleDateString('es-MX') : '';
+        const endDate = a.contestId.endDate ? new Date(a.contestId.endDate).toLocaleDateString('es-MX') : '';
+        rows.push([a.contestId.name, a.reviewerId.name, startDate, endDate]);
+      });
+
+    const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const filename = `jueces_activos_${new Date().toISOString().slice(0, 10)}.csv`;
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send('\uFEFF' + csv);
   } catch (err) { next(err); }
 };
