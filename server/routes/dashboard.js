@@ -5,6 +5,7 @@ const {
   getContestRankingGrouped,
   exportContestExcel,
   exportActiveReviewersExcel,
+  exportActiveStudentsExcel,
   getStudentDashboard,
   getReviewerDashboard
 } = require('../controllers/dashboardController');
@@ -16,6 +17,7 @@ router.get('/rankings/:contestId', checkRole('admin'), getContestRanking);
 router.get('/rankings-grouped/:contestId', checkRole('admin'), getContestRankingGrouped);
 router.get('/export/:contestId', checkRole('admin'), exportContestExcel);
 router.get('/export-reviewers', checkRole('admin'), exportActiveReviewersExcel);
+router.get('/export-students', checkRole('admin'), exportActiveStudentsExcel);
 router.get('/student', checkRole('student'), getStudentDashboard);
 router.get('/reviewer', checkRole('reviewer'), getReviewerDashboard);
 

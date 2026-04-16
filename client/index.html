@@ -646,6 +646,7 @@ function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [downloadingReviewers, setDownloadingReviewers] = useState(false);
+  const [downloadingStudents, setDownloadingStudents] = useState(false);
 
   const downloadReviewers = async () => {
     try {
@@ -664,6 +665,26 @@ function AdminDashboard() {
       console.error('Error al descargar revisores activos', error);
     } finally {
       setDownloadingReviewers(false);
+    }
+  };
+
+  const downloadStudents = async () => {
+    try {
+      setDownloadingStudents(true);
+      const response = await ax.get('/dashboard/export-students', { responseType: 'blob' });
+      const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'alumnos_activos.csv');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error al descargar alumnos activos', error);
+    } finally {
+      setDownloadingStudents(false);
     }
   };
 
@@ -696,6 +717,16 @@ function AdminDashboard() {
                 {downloadingReviewers ? 'Descargando...' : 'Descargar revisores'}
               </button>
             )}
+            {s.label === 'Alumnos' && (
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={downloadStudents}
+                disabled={downloadingStudents}
+                style={{ marginTop: 14, width: '100%' }}
+              >
+                {downloadingStudents ? 'Descargando...' : 'Descargar alumnos'}
+              </button>
+            )}
           </div>
         ))}
       </div>
@@ -704,17 +735,24 @@ function AdminDashboard() {
         {stats?.recentProjects?.length > 0 ? (
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Proyecto</th><th>Alumno</th><th>Concurso</th><th>Estado</th><th>Fecha</th></tr></thead>
+              <thead><tr><th>Proyecto</th><th>Alumnos</th><th>Concurso</th><th>Estado</th><th>Fecha</th></tr></thead>
               <tbody>
-                {stats.recentProjects.map(p => (
-                  <tr key={p._id}>
-                    <td><strong>{p.title}</strong></td>
-                    <td>{p.representative?.name}</td>
-                    <td>{p.contestId?.name}</td>
-                    <td><Badge status={p.status} /></td>
-                    <td>{fmtDate(p.createdAt)}</td>
-                  </tr>
-                ))}
+                {stats.recentProjects.map(p => {
+                  const studentNames = [
+                    p.representative?.name,
+                    ...(p.teamMembers?.map(m => m.name) || [])
+                  ].filter(Boolean);
+                  const alumnos = [...new Set(studentNames)].join(', ');
+                  return (
+                    <tr key={p._id}>
+                      <td><strong>{p.title}</strong></td>
+                      <td>{alumnos || '—'}</td>
+                      <td>{p.contestId?.name}</td>
+                      <td><Badge status={p.status} /></td>
+                      <td>{fmtDate(p.createdAt)}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
