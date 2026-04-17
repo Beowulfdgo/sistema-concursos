@@ -1593,22 +1593,32 @@ function StudentDashboard() {
           ))}
         </div>
       )}
-      {showUpload && <UploadProjectModal contests={contests} onClose={()=>setShowUpload(false)} onSaved={()=>{setShowUpload(false);load();}} />}
+      {showUpload && <UploadProjectModal contests={contests} user={user} onClose={()=>setShowUpload(false)} onSaved={()=>{setShowUpload(false);load();}} />}
     </StudentLayout>
   );
 }
 
-function UploadProjectModal({ contests, onClose, onSaved }) {
-  const [form, setForm] = useState({ title:'', contestId:'', categoryId:'', teamMembers:[{name:'',email:''}] });
+function UploadProjectModal({ contests, onClose, onSaved, user }) {
+  const [form, setForm] = useState({ title:'', contestId:'', categoryId:'', teamMembers:[] });
   const [file, setFile] = useState(null);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [drag, setDrag] = useState(false);
   const fileRef = useRef();
 
+  useEffect(() => {
+    if (!user) return;
+    setForm({
+      title: '',
+      contestId: '',
+      categoryId: '',
+      teamMembers: [{ name: user.name, email: user.email, isRepresentative: true }],
+    });
+  }, [user]);
+
   const selContest = contests.find(c=>c._id===form.contestId);
 
-  const addMember = () => setForm({...form, teamMembers:[...form.teamMembers,{name:'',email:''}]});
+  const addMember = () => setForm({...form, teamMembers:[...form.teamMembers,{name:'',email:'',isRepresentative:false}]});
   const removeMember = i => setForm({...form, teamMembers:form.teamMembers.filter((_,idx)=>idx!==i)});
   const updateMember = (i,key,val) => { const m=[...form.teamMembers]; m[i]={...m[i],[key]:val}; setForm({...form,teamMembers:m}); };
 
@@ -1654,9 +1664,10 @@ function UploadProjectModal({ contests, onClose, onSaved }) {
         <label className="form-label">Integrantes del equipo</label>
         {form.teamMembers.map((m,i)=>(
           <div className="team-member-row" key={i}>
-            <input className="form-input" placeholder="Nombre" value={m.name} onChange={e=>updateMember(i,'name',e.target.value)} />
-            <input className="form-input" placeholder="Email" type="email" value={m.email} onChange={e=>updateMember(i,'email',e.target.value)} />
-            {form.teamMembers.length>1 && <button style={{background:'none',border:'none',cursor:'pointer',color:'var(--error)',fontSize:18,padding:'4px'}} onClick={()=>removeMember(i)}>✕</button>}
+            <input className="form-input" placeholder="Nombre" value={m.name} onChange={e=>updateMember(i,'name',e.target.value)} disabled={m.isRepresentative} />
+            <input className="form-input" placeholder="Email" type="email" value={m.email} onChange={e=>updateMember(i,'email',e.target.value)} disabled={m.isRepresentative} />
+            {m.isRepresentative && <span style={{fontSize:12,color:'var(--text-3)',marginLeft:8}}>Representante</span>}
+            {form.teamMembers.length>1 && !m.isRepresentative && <button style={{background:'none',border:'none',cursor:'pointer',color:'var(--error)',fontSize:18,padding:'4px'}} onClick={()=>removeMember(i)}>✕</button>}
           </div>
         ))}
         <button className="btn btn-secondary btn-sm" onClick={addMember}>+ Agregar integrante</button>
