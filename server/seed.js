@@ -12,6 +12,7 @@ async function seed() {
   await User.create({ name:'José Antonio Flores Lara', email:'antonioflores30@hotmail.com', password:'revisor1234', role:'reviewer', status:'active' });
   await User.create({ name:'Oscar Daniel Vacio Loera ', email:'oscar.vl@zacatecasocc.tecnm.mx', password:'revisor1234', role:'reviewer', status:'active' });
   await User.create({ name:'Veronica Rebe ', email:'veronicarebe69@hotmail.com', password:'revisor1234', role:'reviewer', status:'active' });
+  await User.create({ name:'Veronica Rebe ', email:'revisor@cnppe.mx', password:'revisor1234', role:'reviewer', status:'active' });
   await User.create({ name:'Alumno Demo', email:'alumno@cnppe.mx', password:'alumno1234', role:'student', status:'active' });
   await User.create({ name:'Alumno Demo 2', email:'alumno2@cnppe.mx', password:'alumno1234', role:'student', status:'active' }); 
   const rubricTec = await Rubric.create({

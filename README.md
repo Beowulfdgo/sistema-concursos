@@ -146,12 +146,16 @@ cd client && python3 -m http.server 3000
 
 ## 🔑 Cuentas de Prueba (después de ejecutar seed.js)
 
-| Rol          | Email                 | Contraseña    |
-|--------------|-----------------------|---------------|
-| Admin        | admin@cnppe.mx        | admin1234     |
-| Revisor      | revisor@cnppe.mx      | revisor1234   |
-| Alumno       | alumno@cnppe.mx       | alumno1234    |
-| Alumno2      | alumno2@cnppe.mx      | alumno1234    |
+| Rol          | Nombre                           | Email                                    | Contraseña    |
+|--------------|----------------------------------|------------------------------------------|---------------|
+| **Admin**    | Administrador CNPPE              | admin@cnppe.mx                           | admin1234     |
+| **Revisor**  | Ernesto Valadez Renteria         | ernesto.vr@zacatecasocc.tecnm.mx         | revisor1234   |
+| **Revisor**  | José Antonio Flores Lara         | antonioflores30@hotmail.com              | revisor1234   |
+| **Revisor**  | Oscar Daniel Vacio Loera         | oscar.vl@zacatecasocc.tecnm.mx           | revisor1234   |
+| **Revisor**  | Verónica Rebe                    | veronicarebe69@hotmail.com               | revisor1234   |
+| **Revisor**  | Verónica Rebe (Genérico)         | revisor@cnppe.mx                         | revisor1234   |
+| **Alumno**   | Alumno Demo                      | alumno@cnppe.mx                          | alumno1234    |
+| **Alumno**   | Alumno Demo 2                    | alumno2@cnppe.mx                         | alumno1234    |
 
 ---
 
@@ -243,6 +247,60 @@ cd client && python3 -m http.server 3000
 
 ---
 
+## 🎯 Datos Generados en seed.js
+
+### Concurso Configurado
+**Concurso Nacional de Prototipos XXVIII - Fase Estatal 2026**
+- **Periodo:** 01 de enero - 31 de diciembre 2026
+- **Periodicidad:** Anual
+- **Estado:** Activo
+- **Categorías:**
+  1. Mejora de procesos productivos, telecomunicaciones y electromovilidad
+  2. Medio ambiente, energías renovables y sustentabilidad
+  3. Educación, desarrollo social y sistemas económico-administrativos
+  4. Biotecnología, innovación en alimentos y nutrición
+
+### Rúbrica Configurada
+**Rúbrica Tecnológico** - Modalidad técnica para evaluación de prototipos
+
+**Sección I: INFORME DEL PROTOTIPO (40 puntos)**
+- Introducción (1 pt)
+- Planteamiento del problema (1 pt)
+- Justificación (2 pts)
+- Hipótesis (2 pts)
+- Objetivo (4 pts)
+- Tipo de investigación (2 pts)
+- Marco Teórico (2 pts)
+- Descripción del desarrollo e implementación (4 pts)
+- Propuesta de valor (4 pts)
+- Estudio de viabilidad (2 pts)
+- Estudio de factibilidad técnica y financiera (4 pts)
+- Impacto social, ecológico, tecnológico (4 pts)
+- Estrategia propiedad intelectual (2 pts)
+- Análisis de resultados (2 pts)
+- Conclusiones (2 pts)
+- Bibliografía APA 7ª edición (mín. 10 referencias) (2 pts)
+
+**Sección II: MODALIDAD DEL PROTOTIPO (20 puntos)**
+- Propone elementos tecnológicos innovadores (5 pts)
+- Contribuye a mejorar el proceso para el cual fue diseñado (5 pts)
+- Aplica teorías y métodos con alto nivel de dominio (5 pts)
+- Usa normas y estándares nacionales/internacionales (5 pts)
+
+**Sección III: EXPOSICIÓN ORAL, DOCUMENTOS Y MATERIALES (40 puntos)**
+- Dominio verbal, corporal y facial en la exposición (5 pts)
+- Demuestra funcionamiento del prototipo (5 pts)
+- Contextos de aplicación del prototipo (5 pts)
+- Detalla puntos clave de operación (5 pts)
+- Bitácora de actividades (5 pts)
+- Cartel con todos los elementos requeridos (5 pts)
+- Manuales de usuario/instalación (5 pts)
+- Materiales de exposición útiles y claros (5 pts)
+
+**Total: 100 puntos**
+
+---
+
 ## ⚙️ Variables de Entorno (.env)
 
 ```env
@@ -301,3 +359,21 @@ MAX_FILE_SIZE=10485760
 - El frontend usa React desde CDN con Babel transpilado en el navegador (ideal para desarrollo). En producción, crear un proyecto con Vite/CRA.
 - Los PDFs se almacenan en `server/uploads/projects/`. En producción, migrar a AWS S3 o similar.
 - Para producción usar HTTPS y configurar Nginx como reverse proxy.
+
+---
+
+## 📋 Inicialización de Datos
+
+### seed.js
+Ejecutar `node seed.js` para cargar:
+- ✅ 1 usuario Admin
+- ✅ 5 usuarios Revisores con información de evaluadores institucionales
+- ✅ 2 usuarios Alumnos de prueba
+- ✅ Rúbrica de evaluación completa (Tecnológico - 100 puntos)
+- ✅ Concurso Nacional de Prototipos XXVIII - Fase Estatal 2026
+- ✅ 4 categorías de proyecto
+
+### inicializarTodo.js
+Ejecutar `node inicializarTodo.js` para resetear la base de datos completamente sin datos de prueba.
+
+**Nota:** Ambos scripts limpian la base de datos de datos existentes, así que usarlos con cuidado en producción.
