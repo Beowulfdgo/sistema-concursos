@@ -308,7 +308,9 @@
 const { useState, useEffect, useCallback, useRef, createContext, useContext, Fragment } = React;
 
 // ─── API ────────────────────────────────────────────────────────────────────
-const API = 'http://localhost:5000/api/v1';
+const API_URL = window.location.hostname === 'localhost' 
+  ? 'http://localhost:5000/api/v1'
+  : `${window.location.origin}/api/v1`;
 const ax = axios.create({ baseURL: API, withCredentials: true });
 ax.interceptors.request.use(c => {
   const t = localStorage.getItem('tk');
