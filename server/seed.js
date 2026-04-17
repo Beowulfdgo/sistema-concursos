@@ -8,9 +8,9 @@ async function seed() {
   await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/concursos_db');
   await Promise.all([User.deleteMany({}), Rubric.deleteMany({}), Contest.deleteMany({})]);
   const admin = await User.create({ name:'Administrador CNPPE', email:'admin@cnppe.mx', password:'admin1234', role:'admin', status:'active' });
-  await User.create({ name:'Ernesto Valadez', email:'revisor@cnppe.mx', password:'revisor1234', role:'reviewer', status:'active' });
-  await User.create({ name:'Antonio flores', email:'antonioflores30@hotmail.com', password:'revisor1234', role:'reviewer', status:'active' });
-  await User.create({ name:'Oscar Vacio ', email:'revisor2@cnppe.mx', password:'revisor1234', role:'reviewer', status:'active' });
+  await User.create({ name:'Ernesto Valadez Renteria', email:'ernesto.vr@zacatecasocc.tecnm.mx', password:'revisor1234', role:'reviewer', status:'active' });
+  await User.create({ name:'José Antonio Flores Lara', email:'antonioflores30@hotmail.com', password:'revisor1234', role:'reviewer', status:'active' });
+  await User.create({ name:'Oscar Daniel Vacio Loera ', email:'oscar.vl@zacatecasocc.tecnm.mx', password:'revisor1234', role:'reviewer', status:'active' });
   await User.create({ name:'Veronica Rebe ', email:'veronicarebe69@hotmail.com', password:'revisor1234', role:'reviewer', status:'active' });
   await User.create({ name:'Alumno Demo', email:'alumno@cnppe.mx', password:'alumno1234', role:'student', status:'active' });
   await User.create({ name:'Alumno Demo 2', email:'alumno2@cnppe.mx', password:'alumno1234', role:'student', status:'active' }); 
