@@ -59,6 +59,22 @@ exports.createProject = async (req, res, next) => {
     const existing = await Project.findOne({ contestId, representative: req.user._id });
     if (existing) return res.status(409).json({ message: 'Ya tienes un proyecto en este concurso' });
 
+    // Add the logged-in user as representative in team members
+    const representativeMember = {
+      name: req.user.name,
+      email: req.user.email,
+      isRepresentative: true
+    };
+
+    // Check if representative is already in the list, if not, add at the beginning
+    const existingRepIndex = members.findIndex(m => m.email === req.user.email);
+    if (existingRepIndex === -1) {
+      members.unshift(representativeMember);
+    } else {
+      // If already exists, ensure isRepresentative is true
+      members[existingRepIndex].isRepresentative = true;
+    }
+
     const projectData = {
       title, contestId, categoryId, categoryName,
       representative: req.user._id,
