@@ -7,9 +7,13 @@ const Project = require('./models/Project');
 const Evaluation = require('./models/Evaluation');
 const Assignment = require('./models/Assignment');
 
+// Importar la función seed
+const { seed } = require('./seed');
+
 async function inicializarTodo() {
   await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/concursos_db');
 
+  // Primero borrar todos los datos
   await Promise.all([
     User.deleteMany({ role: { $in: ['admin', 'reviewer', 'student'] } }),
     Rubric.deleteMany({}),
@@ -19,7 +23,13 @@ async function inicializarTodo() {
     Assignment.deleteMany({}),
   ]);
 
-  console.log('Inicialización completa. Se han borrado usuarios (incluyendo revisores), rubricas, concursos, proyectos, evaluaciones y asignaciones.');
+  console.log('✅ Datos eliminados exitosamente.');
+
+  // Luego ejecutar el seed para cargar datos de prueba
+  console.log('🌱 Cargando datos de prueba...');
+  await seed();
+
+  console.log('🎉 Inicialización completa. Base de datos limpia y datos de prueba cargados.');
   await mongoose.disconnect();
 }
 

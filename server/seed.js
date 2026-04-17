@@ -5,8 +5,7 @@ const Rubric = require('./models/Rubric');
 const Contest = require('./models/Contest');
 
 async function seed() {
-  await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/concursos_db');
-  await Promise.all([User.deleteMany({}), Rubric.deleteMany({}), Contest.deleteMany({})]);
+  // Nota: No hacer deleteMany aquí porque inicializarTodo.js ya lo hace
   const admin = await User.create({ name:'Administrador CNPPE', email:'admin@cnppe.mx', password:'admin1234', role:'admin', status:'active' });
   await User.create({ name:'Ernesto Valadez Renteria', email:'ernesto.vr@zacatecasocc.tecnm.mx', password:'revisor1234', role:'reviewer', status:'active' });
   await User.create({ name:'José Antonio Flores Lara', email:'antonioflores30@hotmail.com', password:'revisor1234', role:'reviewer', status:'active' });
@@ -65,6 +64,22 @@ async function seed() {
   });
 
   console.log('Seed OK - admin@cnppe.mx/admin1234 | revisor@cnppe.mx/revisor1234 | alumno@cnppe.mx/alumno1234 | alumno2@cnppe.mx/alumno1234');
-  await mongoose.disconnect();
+  return { admin, rubricTec };
 }
-seed().catch(e=>{console.error(e);process.exit(1);});
+
+// Exportar la función para que pueda ser llamada desde inicializarTodo.js
+module.exports = { seed };
+
+// Si se ejecuta directamente, conectar a la BD y ejecutar
+if (require.main === module) {
+  (async () => {
+    try {
+      await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/concursos_db');
+      await seed();
+      await mongoose.disconnect();
+    } catch (error) {
+      console.error('Error ejecutando seed:', error);
+      process.exit(1);
+    }
+  })();
+}
