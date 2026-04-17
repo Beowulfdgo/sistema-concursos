@@ -118,8 +118,9 @@ cp .env.example .env
 # Instalar dependencias
 npm install
 
-# (Opcional) Cargar datos de prueba
-node seed.js
+# (Opcional) Cargar datos de prueba	node seed.js
+# Resetear e inicializar datos vacíos
+node inicializarTodo.js
 
 # Iniciar servidor
 node server.js
