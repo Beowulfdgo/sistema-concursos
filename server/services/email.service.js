@@ -1,11 +1,29 @@
 const { Resend } = require('resend');
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy initialization de Resend para permitir desarrollo sin API key
+let resend = null;
+
+const getResendClient = () => {
+  if (!resend && process.env.RESEND_API_KEY) {
+    resend = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resend;
+};
 
 const sendVerificationEmail = async (to, name, code) => {
+  const client = getResendClient();
+  
+  // Si no hay cliente Resend configurado, log en consola (desarrollo)
+  if (!client) {
+    console.log(`\n📧 VERIFICATION EMAIL would be sent to ${to}`);
+    console.log(`📋 Name: ${name}`);
+    console.log(`🔐 Code: ${code}\n`);
+    return { id: 'dev-mode' };
+  }
+
   const from = process.env.EMAIL_FROM || `Concursos de Investigación <${process.env.EMAIL_USER}>`;
 
-  const { data, error } = await resend.emails.send({
+  const { data, error } = await client.emails.send({
     from,
     to,
     subject: 'Verifica tu cuenta — Código de acceso',
