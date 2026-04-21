@@ -4,7 +4,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 
-const authRoutes = require('./routes/auth');
+const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/users');
 const rubricRoutes = require('./routes/rubrics');
 const contestRoutes = require('./routes/contests');
@@ -16,6 +16,10 @@ const dashboardRoutes = require('./routes/dashboard');
 const errorHandler = require('./middlewares/errorHandler');
 
 const app = express();
+
+// Trust proxy - necesario para ambientes con reverse proxy (Railway, Heroku, etc)
+app.set('trust proxy', 1);
+
 app.use(express.static(path.join(__dirname, '../client')));
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/index.html'));
@@ -32,7 +36,9 @@ app.use(cors({
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
-  message: { message: 'Demasiadas solicitudes, intenta más tarde.' }
+  message: { message: 'Demasiadas solicitudes, intenta más tarde.' },
+  trustProxy: true,
+  keyGenerator: (req) => req.ip
 });
 
 app.use('/api/v1/auth', authLimiter);
