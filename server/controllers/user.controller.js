@@ -15,7 +15,7 @@ exports.getUsers = async (req, res, next) => {
 };
 
 // GET /users/me
-exports.getMe = (req, res) => res.json(req.user.toSafeObject ? req.user.toSafeObject() : req.user);
+exports.getMe = (req, res) => res.json(req.user.toJSON ? req.user.toJSON() : req.user);
 
 // GET /users/:id
 exports.getUserById = async (req, res, next) => {
@@ -33,7 +33,7 @@ exports.createReviewer = async (req, res, next) => {
     const exists = await User.findOne({ email });
     if (exists) return res.status(409).json({ message: 'El email ya está registrado' });
     const user = await User.create({ name, email, password, role: 'reviewer', status: 'active' });
-    res.status(201).json(user.toSafeObject());
+    res.status(201).json(user.toJSON());
   } catch (err) { next(err); }
 };
 

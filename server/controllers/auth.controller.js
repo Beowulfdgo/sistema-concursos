@@ -86,7 +86,7 @@ exports.login = async (req, res, next) => {
     await user.save();
 
     res.cookie('refreshToken', refreshToken, COOKIE_OPTS);
-    res.json({ accessToken, user: user.toSafeObject() });
+    res.json({ accessToken, user: user.toJSON() });
   } catch (err) { next(err); }
 };
 
