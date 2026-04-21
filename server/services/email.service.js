@@ -21,7 +21,25 @@ const sendVerificationEmail = async (to, name, code) => {
     return { id: 'dev-mode' };
   }
 
-  const from = process.env.EMAIL_FROM || `Concursos de Investigación <${process.env.EMAIL_USER}>`;
+  // Construir campo FROM - debe ser un email verificado en Resend
+  // Formatos válidos: "email@example.com" o "Name <email@example.com>"
+  let from = process.env.EMAIL_FROM || process.env.EMAIL_USER;
+  
+  if (!from) {
+    console.error('❌ EMAIL_FROM o EMAIL_USER no configurados en variables de entorno');
+    throw new Error('Email configuration missing. Set EMAIL_FROM or EMAIL_USER in environment variables');
+  }
+
+  // Asegurar que el formato sea válido (si no tiene <>, agregar nombre)
+  if (from && !from.includes('@')) {
+    console.error(`❌ EMAIL_FROM/EMAIL_USER inválido: ${from}`);
+    throw new Error('Invalid email format in EMAIL_FROM or EMAIL_USER');
+  }
+
+  // Si tiene formato "email@example.com", agregamos un nombre
+  if (from && !from.includes('<') && !from.includes('>')) {
+    from = `Sistema de Concursos <${from}>`;
+  }
 
   const { data, error } = await client.emails.send({
     from,
@@ -46,7 +64,7 @@ const sendVerificationEmail = async (to, name, code) => {
 
   if (error) {
     console.error('Resend email error:', error);
-    return;
+    throw new Error(`Email service error: ${error.message}`);
   }
 
   return data; // { id: '...' }
