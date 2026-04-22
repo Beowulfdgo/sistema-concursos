@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import Layout from './components/common/Layout';
 import LoginPage from './pages/AuthPages';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminUsers from './pages/admin/AdminUsers';
 import ReviewerDashboard from './pages/reviewer/ReviewerDashboard';
 import EvaluateProject from './pages/reviewer/EvaluateProject';
 import ContestProjects from './pages/reviewer/ContestProjects';
@@ -21,6 +22,7 @@ function App() {
             <Route path="/reviewer/dashboard" element={<ReviewerDashboard />} />
             <Route path="/reviewer/evaluate/:projectId" element={<EvaluateProject />} />
             <Route path="/reviewer/contest/:contestId" element={<ContestProjects />} />
+            <Route path="/admin/users" element={<AdminUsers />} />
             {/* Add other routes */}
           </Routes>
         </Layout>
