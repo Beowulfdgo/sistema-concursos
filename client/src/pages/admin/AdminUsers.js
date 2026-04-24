@@ -49,20 +49,20 @@ export default function AdminUsers() {
       </div>
       <Card>
         {loading ? <Spinner /> : (
-          <Table headers={['Nombre', 'Email', 'Rol', 'Estado', tab === 'student' ? 'Acciones' : '']}>
+          <Table headers={['Nombre', 'Email', 'Rol', 'Estado', ...(tab === 'student' ? ['Acciones'] : [])]}>
             {filtered.map(u => (
               <Tr key={u._id}>
                 <Td>{u.name}</Td>
                 <Td>{u.email}</Td>
                 <Td><Badge color={u.role === 'student' ? 'blue' : u.role === 'reviewer' ? 'yellow' : 'green'}>{u.role}</Badge></Td>
                 <Td><Badge color={u.status === 'active' ? 'green' : u.status === 'pending' ? 'yellow' : 'red'}>{u.status}</Badge></Td>
-                {tab === 'student' ? (
+                {tab === 'student' && (
                   <Td>
                     <Button variant="danger" size="sm" loading={deletingId === u._id} onClick={() => handleDelete(u._id, u.name)}>
                       Eliminar
                     </Button>
                   </Td>
-                ) : <Td />}
+                )}
               </Tr>
             ))}
           </Table>
