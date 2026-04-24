@@ -6,6 +6,7 @@ export default function AdminUsers() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
+  const [suspendingId, setSuspendingId] = useState(null);
   const [tab, setTab] = useState('student');
 
   useEffect(() => {
@@ -24,12 +25,25 @@ export default function AdminUsers() {
     }
   };
 
-  const handleDelete = async (id, name) => {
-    if (!window.confirm(`¿Seguro que deseas eliminar al alumno "${name}"? Esta acción no se puede deshacer.`)) return;
-    setDeletingId(id);
+  const handleSuspend = async (id, name) => {
+    if (!window.confirm(`¿Suspender al alumno "${name}"?`)) return;
+    setSuspendingId(id);
     try {
       await api.delete(`/users/${id}`);
-      setUsers(users.filter(u => u._id !== id));
+      setUsers(prev => prev.map(u => u._id === id ? { ...u, status: 'suspended' } : u));
+    } catch (err) {
+      alert('Error al suspender usuario');
+    } finally {
+      setSuspendingId(null);
+    }
+  };
+
+  const handleDelete = async (id, name) => {
+    if (!window.confirm(`¿Eliminar permanentemente al alumno "${name}"? Esta acción no se puede deshacer.`)) return;
+    setDeletingId(id);
+    try {
+      await api.delete(`/users/${id}/permanent`);
+      setUsers(prev => prev.filter(u => u._id !== id));
     } catch (err) {
       alert('Error al eliminar usuario');
     } finally {
@@ -38,6 +52,9 @@ export default function AdminUsers() {
   };
 
   const filtered = users.filter(u => u.role === tab);
+
+  const headers = ['Nombre', 'Email', 'Rol', 'Estado'];
+  if (tab === 'student') headers.push('Acciones');
 
   return (
     <div className="animate-in">
@@ -49,7 +66,7 @@ export default function AdminUsers() {
       </div>
       <Card>
         {loading ? <Spinner /> : (
-          <Table headers={['Nombre', 'Email', 'Rol', 'Estado', ...(tab === 'student' ? ['Acciones'] : [])]}>
+          <Table headers={headers}>
             {filtered.map(u => (
               <Tr key={u._id}>
                 <Td>{u.name}</Td>
@@ -58,6 +75,9 @@ export default function AdminUsers() {
                 <Td><Badge color={u.status === 'active' ? 'green' : u.status === 'pending' ? 'yellow' : 'red'}>{u.status}</Badge></Td>
                 {tab === 'student' && (
                   <Td>
+                    <Button variant="outline" size="sm" loading={suspendingId === u._id} onClick={() => handleSuspend(u._id, u.name)} style={{ marginRight: 6 }}>
+                      Suspender
+                    </Button>
                     <Button variant="danger" size="sm" loading={deletingId === u._id} onClick={() => handleDelete(u._id, u.name)}>
                       Eliminar
                     </Button>
