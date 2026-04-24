@@ -25,18 +25,18 @@ export default function AdminUsers() {
     }
   };
 
-  const handleSuspend = async (id, name) => {
-    if (!window.confirm(`¿Suspender al alumno "${name}"?`)) return;
-    setSuspendingId(id);
-    try {
-      await api.delete(`/users/${id}`);
-      setUsers(prev => prev.map(u => u._id === id ? { ...u, status: 'suspended' } : u));
-    } catch (err) {
-      alert('Error al suspender usuario');
-    } finally {
-      setSuspendingId(null);
-    }
-  };
+const handleSuspend = async (id, name) => {
+  if (!window.confirm(`¿Suspender al alumno "${name}"?`)) return;
+  setSuspendingId(id);
+  try {
+    await api.patch(`/users/${id}/status`, { status: 'suspended' }); // ✅ correcto
+    setUsers(prev => prev.map(u => u._id === id ? { ...u, status: 'suspended' } : u));
+  } catch (err) {
+    alert('Error al suspender usuario');
+  } finally {
+    setSuspendingId(null);
+  }
+};
 
   const handleDelete = async (id, name) => {
     if (!window.confirm(`¿Eliminar permanentemente al alumno "${name}"? Esta acción no se puede deshacer.`)) return;
