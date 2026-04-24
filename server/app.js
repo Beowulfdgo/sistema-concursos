@@ -20,9 +20,9 @@ const app = express();
 // Trust proxy - necesario para ambientes con reverse proxy (Railway, Heroku, etc)
 app.set('trust proxy', 1);
 
-app.use(express.static(path.join(__dirname, '../client')));
+app.use(express.static(path.join(__dirname, '../client/build')));
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../client/index.html'));
+  res.sendFile(path.join(__dirname, '../client/build/index.html'));
 });
 
 // Security
@@ -59,8 +59,8 @@ app.use('/api/v1/assignments', assignmentRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
 
 app.get('/api/v1/health', (req, res) => res.json({ status: 'OK', timestamp: new Date() }));
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../client/index.html'));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/build/index.html'));
 });
 app.use(errorHandler);
 module.exports = app;
