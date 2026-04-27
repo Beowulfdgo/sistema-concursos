@@ -151,3 +151,5 @@ export const VerifyEmailPage = () => {
     </AuthCard>
   );
 };
+
+export default LoginPage;
