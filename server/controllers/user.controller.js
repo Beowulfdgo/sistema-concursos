@@ -15,7 +15,7 @@ exports.getUsers = async (req, res, next) => {
 };
 
 // GET /users/me
-exports.getMe = (req, res) => res.json(req.user.toSafeObject ? req.user.toSafeObject() : req.user);
+exports.getMe = (req, res) => res.json(req.user.toJSON ? req.user.toJSON() : req.user);
 
 // GET /users/:id
 exports.getUserById = async (req, res, next) => {
@@ -33,7 +33,7 @@ exports.createReviewer = async (req, res, next) => {
     const exists = await User.findOne({ email });
     if (exists) return res.status(409).json({ message: 'El email ya está registrado' });
     const user = await User.create({ name, email, password, role: 'reviewer', status: 'active' });
-    res.status(201).json(user.toSafeObject());
+    res.status(201).json(user.toJSON());
   } catch (err) { next(err); }
 };
 
@@ -69,5 +69,14 @@ exports.deleteUser = async (req, res, next) => {
     const user = await User.findByIdAndUpdate(req.params.id, { status: 'suspended' }, { new: true });
     if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
     res.json({ message: 'Usuario suspendido' });
+  } catch (err) { next(err); }
+};
+
+// DELETE /users/:id/permanent
+exports.permanentDeleteUser = async (req, res, next) => {
+  try {
+    const user = await User.findByIdAndDelete(req.params.id);
+    if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
+    res.json({ message: 'Usuario eliminado permanentemente' });
   } catch (err) { next(err); }
 };

@@ -4,7 +4,7 @@ const api = axios.create({ baseURL: '/api/v1', withCredentials: true });
 
 // Attach token
 api.interceptors.request.use(config => {
-  const token = localStorage.getItem('accessToken');
+  const token = localStorage.getItem('tk');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -23,7 +23,7 @@ api.interceptors.response.use(
       refreshing = true;
       try {
         const { data } = await axios.post('/api/v1/auth/refresh', {}, { withCredentials: true });
-        localStorage.setItem('accessToken', data.accessToken);
+        localStorage.setItem('tk', data.accessToken);
         queue.forEach(({ res }) => res());
         queue = [];
         orig.headers.Authorization = `Bearer ${data.accessToken}`;
@@ -31,7 +31,7 @@ api.interceptors.response.use(
       } catch {
         queue.forEach(({ rej }) => rej(err));
         queue = [];
-        localStorage.removeItem('accessToken');
+        localStorage.removeItem('tk');
         window.location.href = '/login';
       } finally { refreshing = false; }
     }

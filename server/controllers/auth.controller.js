@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const User = require('../models/User');
-const { signAccessToken, signRefreshToken, verifyRefreshToken } = require('../utils/jwt');
+const { generateAccessToken, generateRefreshToken, verifyRefreshToken } = require('../utils/jwt');
 const { sendVerificationEmail } = require('../services/email.service');
 
 const COOKIE_OPTS = {
@@ -79,14 +79,14 @@ exports.login = async (req, res, next) => {
     const ok = await user.comparePassword(password);
     if (!ok) return res.status(401).json({ message: 'Credenciales incorrectas' });
 
-    const accessToken = signAccessToken({ id: user._id, role: user.role });
-    const refreshToken = signRefreshToken({ id: user._id });
+    const accessToken = generateAccessToken({ id: user._id, role: user.role });
+    const refreshToken = generateRefreshToken({ id: user._id });
 
     user.refreshToken = refreshToken;
     await user.save();
 
     res.cookie('refreshToken', refreshToken, COOKIE_OPTS);
-    res.json({ accessToken, user: user.toSafeObject() });
+    res.json({ accessToken, user: user.toJSON() });
   } catch (err) { next(err); }
 };
 
@@ -101,7 +101,7 @@ exports.refresh = async (req, res, next) => {
     if (!user || user.refreshToken !== token)
       return res.status(401).json({ message: 'Refresh token inválido' });
 
-    const accessToken = signAccessToken({ id: user._id, role: user.role });
+    const accessToken = generateAccessToken({ id: user._id, role: user.role });
     res.json({ accessToken });
   } catch (err) {
     res.status(401).json({ message: 'Refresh token expirado o inválido' });
