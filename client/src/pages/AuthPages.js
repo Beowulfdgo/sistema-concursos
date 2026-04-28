@@ -119,7 +119,7 @@ export const VerifyEmailPage = () => {
     e.preventDefault();
     setError(''); setLoading(true);
     try {
-      const api = (await import('../../api/axios')).default;
+      const api = (await import('../api/axios')).default;
       await api.post('/auth/verify-email', { email, code });
       setSuccess(true);
       setTimeout(() => navigate('/login'), 2000);
@@ -130,7 +130,7 @@ export const VerifyEmailPage = () => {
 
   const resend = async () => {
     try {
-      const api = (await import('../../api/axios')).default;
+      const api = (await import('../api/axios')).default;
       await api.post('/auth/resend-code', { email });
       setError('');
     } catch {}
