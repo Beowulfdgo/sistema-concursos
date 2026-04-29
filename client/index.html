@@ -1599,7 +1599,7 @@ function StudentDashboard() {
 }
 
 function UploadProjectModal({ contests, onClose, onSaved, user }) {
-  const [form, setForm] = useState({ title:'', contestId:'', categoryId:'', teamMembers:[] });
+  const [form, setForm] = useState({ title:'', contestId:'', categoryId:'', youtubeUrl:'', teamMembers:[] });
   const [file, setFile] = useState(null);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -1612,6 +1612,7 @@ function UploadProjectModal({ contests, onClose, onSaved, user }) {
       title: '',
       contestId: '',
       categoryId: '',
+      youtubeUrl: '',
       teamMembers: [{ name: user.name, email: user.email, isRepresentative: true }],
     });
   }, [user]);
@@ -1625,8 +1626,17 @@ function UploadProjectModal({ contests, onClose, onSaved, user }) {
   const handleFile = f => { if (f?.type==='application/pdf') setFile(f); else setError('Solo se permiten archivos PDF'); };
   const onDrop = e => { e.preventDefault(); setDrag(false); handleFile(e.dataTransfer.files[0]); };
 
+  const isValidYoutubeShareUrl = (url) => {
+    if (!url) return false;
+    const u = url.trim();
+    // Formato requerido: https://youtu.be/<id>?si=<token>
+    return /^https:\/\/youtu\.be\/[A-Za-z0-9_-]{11}\?si=[A-Za-z0-9_-]+$/.test(u);
+  };
+
   const save = async () => {
     if (!form.title||!form.contestId||!file) return setError('Título, concurso y archivo PDF son requeridos');
+    if (!form.youtubeUrl) return setError('La URL de video de YouTube es requerida');
+    if (!isValidYoutubeShareUrl(form.youtubeUrl)) return setError('URL de YouTube inválida. Ejemplo: https://youtu.be/a3hOeU7w59o?si=5QPG24DduRBEyg29');
     setSaving(true); setError('');
     try {
       const fd = new FormData();
@@ -1634,6 +1644,7 @@ function UploadProjectModal({ contests, onClose, onSaved, user }) {
       fd.append('contestId', form.contestId);
       fd.append('categoryId', form.categoryId||'000000000000000000000000');
       fd.append('categoryName', selContest?.categories?.find(c=>c._id===form.categoryId)?.name||'');
+      fd.append('youtubeUrl', form.youtubeUrl.trim());
       fd.append('teamMembers', JSON.stringify(form.teamMembers.filter(m=>m.name)));
       fd.append('file', file);
       await ax.post('/projects', fd, { headers:{ 'Content-Type':'multipart/form-data' }});
@@ -1660,6 +1671,18 @@ function UploadProjectModal({ contests, onClose, onSaved, user }) {
             {selContest.categories.map(c=><option key={c._id} value={c._id}>{c.name}</option>)}
           </select></div>
       )}
+      <div className="form-group">
+        <label className="form-label">URL de video de YouTube *</label>
+        <input
+          className="form-input"
+          value={form.youtubeUrl}
+          onChange={e=>setForm({...form,youtubeUrl:e.target.value})}
+          placeholder="https://youtu.be/a3hOeU7w59o?si=5QPG24DduRBEyg29"
+        />
+        <div style={{ marginTop: 6, fontSize: 12, color: 'var(--text-3)' }}>
+          Formato requerido: <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace' }}>https://youtu.be/&lt;id&gt;?si=&lt;token&gt;</span>
+        </div>
+      </div>
       <div className="form-group">
         <label className="form-label">Integrantes del equipo</label>
         {form.teamMembers.map((m,i)=>(
