@@ -3,6 +3,11 @@ const path = require('path');
 const Project = require('../models/Project');
 const Assignment = require('../models/Assignment');
 
+const isValidYoutubeShareUrl = (url) => {
+  if (!url || typeof url !== 'string') return false;
+  return /^https:\/\/youtu\.be\/[A-Za-z0-9_-]{11}\?si=[A-Za-z0-9_-]+$/.test(url.trim());
+};
+
 exports.getProjects = async (req, res, next) => {
   try {
     const { contestId, status } = req.query;
@@ -39,9 +44,16 @@ exports.getProject = async (req, res, next) => {
 
 exports.createProject = async (req, res, next) => {
   try {
-    const { title, contestId, categoryId, categoryName, teamMembers } = req.body;
+    const { title, contestId, categoryId, categoryName, teamMembers, youtubeUrl } = req.body;
     const existingProject = await Project.findOne({ representative: req.user.id, contestId });
     if (existingProject) return res.status(400).json({ message: 'Ya tienes un proyecto registrado en este concurso.' });
+
+    if (!youtubeUrl) return res.status(400).json({ message: 'La URL de video de YouTube es requerida.' });
+    if (!isValidYoutubeShareUrl(youtubeUrl)) {
+      return res.status(400).json({
+        message: 'URL de YouTube inválida. Formato requerido: https://youtu.be/<id>?si=<token>',
+      });
+    }
 
     // Parse team members from request body
     let members = [];
@@ -67,6 +79,7 @@ exports.createProject = async (req, res, next) => {
 
     const projectData = {
       title, contestId, categoryId, categoryName,
+      youtubeUrl: youtubeUrl.trim(),
       representative: req.user.id,
       teamMembers: members,
     };
