@@ -1426,6 +1426,7 @@ function EvaluationPage() {
           <div><span style={{fontSize:12,color:'var(--text-3)'}}>REPRESENTANTE</span><div>{project?.representative?.name}</div></div>
           <div><span style={{fontSize:12,color:'var(--text-3)'}}>CATEGORÍA</span><div>{project?.categoryName}</div></div>
          {project?.filePath && (
+
   <button className="btn btn-secondary btn-sm" onClick={async () => {
     try {
       const token = localStorage.getItem("token");
@@ -1440,6 +1441,7 @@ function EvaluationPage() {
     } catch (err) {
       alert('No se pudo cargar el PDF');
     }
+
   }}>
     📄 Ver PDF
   </button>
