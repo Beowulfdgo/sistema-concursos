@@ -1428,8 +1428,12 @@ function EvaluationPage() {
          {project?.filePath && (
   <button className="btn btn-secondary btn-sm" onClick={async () => {
     try {
+      const token = localStorage.getItem("token");
       const response = await ax.get(`/projects/${project._id}/file`, {
-        responseType: 'blob'
+        responseType: 'blob',
+        headers: {
+        Authorization: `Bearer ${token}`
+      }
       });
       const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
       window.open(url, '_blank');
