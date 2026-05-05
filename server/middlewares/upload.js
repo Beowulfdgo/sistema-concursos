@@ -5,7 +5,7 @@ const { v4: uuidv4 } = require('uuid');
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const dir = path.join(__dirname, '../uploads/projects');
+    const dir = path.join(__dirname, '..', process.env.UPLOAD_DIR || 'uploads/projects');
     fs.mkdirSync(dir, { recursive: true });
     cb(null, dir);
   },
