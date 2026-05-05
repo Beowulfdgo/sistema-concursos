@@ -5,6 +5,29 @@ const Project = require('../models/Project');
 const Contest = require('../models/Contest');
 const Assignment = require('../models/Assignment');
 
+function normalizeStoredPath(p) {
+  if (!p || typeof p !== 'string') return null;
+  return p.replace(/\\/g, '/').trim();
+}
+
+function resolveProjectFilePath(storedPath) {
+  const normalized = normalizeStoredPath(storedPath);
+  if (!normalized) return null;
+
+  if (path.isAbsolute(normalized) && fs.existsSync(normalized)) return normalized;
+
+  const serverRoot = path.resolve(__dirname, '..');
+  const rel = normalized.replace(/^\/+/, '');
+  const candidateFromServerRoot = path.resolve(serverRoot, rel);
+  if (fs.existsSync(candidateFromServerRoot)) return candidateFromServerRoot;
+
+  const base = path.basename(rel);
+  const candidateUploads = path.resolve(serverRoot, 'uploads', 'projects', base);
+  if (fs.existsSync(candidateUploads)) return candidateUploads;
+
+  return null;
+}
+
 const isValidYoutubeShareUrl = (url) => {
   if (!url || typeof url !== 'string') return false;
   return /^https:\/\/youtu\.be\/[A-Za-z0-9_-]{11}\?si=[A-Za-z0-9_-]+$/.test(url.trim());
@@ -95,7 +118,8 @@ exports.createProject = async (req, res, next) => {
     };
 
     if (req.file) {
-      projectData.filePath = req.file.path;
+      const serverRoot = path.resolve(__dirname, '..');
+      projectData.filePath = path.relative(serverRoot, req.file.path).replace(/\\/g, '/');
       projectData.fileName = req.file.originalname;
       projectData.fileSize = req.file.size;
     }
@@ -125,12 +149,12 @@ exports.getProjectFile = async (req, res, next) => {
     if (!project) return res.status(404).json({ message: 'Proyecto no encontrado' });
     if (req.user.role === 'student' && project.representative.toString() !== req.user._id.toString())
       return res.status(403).json({ message: 'Acceso denegado' });
-    if (!project.filePath || !fs.existsSync(project.filePath))
-      return res.status(404).json({ message: 'Archivo no encontrado' });
+    const filePath = resolveProjectFilePath(project.filePath);
+    if (!filePath) return res.status(404).json({ message: 'Archivo no encontrado' });
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="${project.fileName || 'proyecto.pdf'}"`);
-    res.sendFile(path.resolve(project.filePath));
+    res.sendFile(filePath);
   } catch (err) { next(err); }
 };
 
