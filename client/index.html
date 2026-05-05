@@ -1428,6 +1428,7 @@ function EvaluationPage() {
          {project?.filePath && (
 
   <button className="btn btn-secondary btn-sm" onClick={async () => {
+
   try {
     const token = localStorage.getItem("tk");
 
@@ -1448,6 +1449,7 @@ function EvaluationPage() {
     alert('No se pudo cargar el PDF');
   }
 }}>
+
     📄 Ver PDF
   </button>
 )}
