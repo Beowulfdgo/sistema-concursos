@@ -4,6 +4,16 @@ Sistema web completo para la administración de concursos de proyectos de invest
 
 ---
 
+## ✨ Características recientes
+
+- **Video del proyecto (YouTube)**: captura obligatoria de `youtubeUrl` al registrar un proyecto, con validación del formato `https://youtu.be/<id>?si=<token>`.
+- **Acción “Ver video”**: cuando el proyecto tiene `youtubeUrl`, se muestra un botón para abrir el video en una pestaña nueva.
+- **PDF del proyecto más robusto**: mejoras para descargar/visualizar el PDF usando respuesta tipo *blob* y mejor manejo de errores (incluyendo casos de token/404).
+- **Envío de correos con Resend**: soporte de notificaciones por email mediante API (`RESEND_API_KEY`).
+- **Soporte de despliegue**: ajustes para despliegue vía `Dockerfile` (pensado para Railway).
+
+---
+
 ## 📁 Estructura del Proyecto
 
 ```
@@ -198,8 +208,8 @@ cd client && python3 -m http.server 3000
 | Método | Ruta                    | Descripción                   |
 |--------|-------------------------|-------------------------------|
 | GET    | /api/v1/projects        | Listar (filtrado por rol)     |
-| POST   | /api/v1/projects        | Subir proyecto + PDF          |
-| GET    | /api/v1/projects/:id/file | Descargar PDF               |
+| POST   | /api/v1/projects        | Subir proyecto + PDF + `youtubeUrl` |
+| GET    | /api/v1/projects/:id/file | Descargar/Ver PDF (blob)    |
 
 ### Evaluaciones
 | Método | Ruta                          | Descripción                  |
@@ -236,7 +246,7 @@ cd client && python3 -m http.server 3000
 ### Flujo Alumno
 1. Registro → Verificar email (OTP 6 dígitos)
 2. Login → Dashboard
-3. Subir Proyecto → Seleccionar concurso y categoría → Datos del equipo → Cargar PDF
+3. Subir Proyecto → Seleccionar concurso y categoría → Datos del equipo → Cargar PDF → Capturar liga de YouTube (video)
 4. Ver calificación final cuando esté disponible
 
 ### Flujo Revisor
@@ -312,6 +322,10 @@ JWT_SECRET=cambia_este_secreto
 JWT_REFRESH_SECRET=otro_secreto
 JWT_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=7d
+
+# Emails (Resend)
+RESEND_API_KEY=tu_api_key_de_resend
+EMAIL_FROM="Concursos de Investigación <no-reply@tudominio.com>"
 
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
