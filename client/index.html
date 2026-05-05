@@ -1440,6 +1440,11 @@ function EvaluationPage() {
     📄 Ver PDF
   </button>
 )}
+         {project?.youtubeUrl && (
+  <button className="btn btn-secondary btn-sm" onClick={() => window.open(project.youtubeUrl, '_blank')}>
+    📺 Ver Video
+  </button>
+)}
           </div>
       </div>
 
