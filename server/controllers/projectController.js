@@ -30,6 +30,7 @@ function resolveProjectFilePath(storedPath) {
   return null;
 }
 
+
 function extractYoutubeVideoId(url) {
   if (!url || typeof url !== 'string') return null;
   const u = url.trim();
@@ -61,6 +62,7 @@ function normalizeYoutubeUrl(url) {
   const id = extractYoutubeVideoId(url);
   return id ? `https://www.youtube.com/watch?v=${id}` : null;
 }
+
 
 exports.getProjects = async (req, res, next) => {
   try {
