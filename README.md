@@ -4,6 +4,16 @@ Sistema web completo para la administración de concursos de proyectos de invest
 
 ---
 
+## ✨ Características recientes
+
+- **Video del proyecto (YouTube)**: captura obligatoria de `youtubeUrl` al registrar un proyecto, con validación del formato `https://youtu.be/<id>?si=<token>`.
+- **Acción “Ver video”**: cuando el proyecto tiene `youtubeUrl`, se muestra un botón para abrir el video en una pestaña nueva.
+- **PDF del proyecto más robusto**: mejoras para descargar/visualizar el PDF usando respuesta tipo *blob* y mejor manejo de errores (incluyendo casos de token/404).
+- **Envío de correos con Resend**: soporte de notificaciones por email mediante API (`RESEND_API_KEY`).
+- **Soporte de despliegue**: ajustes para despliegue vía `Dockerfile` (pensado para Railway).
+
+---
+
 ## 📁 Estructura del Proyecto
 
 ```
@@ -198,8 +208,8 @@ cd client && python3 -m http.server 3000
 | Método | Ruta                    | Descripción                   |
 |--------|-------------------------|-------------------------------|
 | GET    | /api/v1/projects        | Listar (filtrado por rol)     |
-| POST   | /api/v1/projects        | Subir proyecto + PDF          |
-| GET    | /api/v1/projects/:id/file | Descargar PDF               |
+| POST   | /api/v1/projects        | Subir proyecto + PDF + `youtubeUrl` |
+| GET    | /api/v1/projects/:id/file | Descargar/Ver PDF (blob)    |
 
 ### Evaluaciones
 | Método | Ruta                          | Descripción                  |
@@ -236,7 +246,7 @@ cd client && python3 -m http.server 3000
 ### Flujo Alumno
 1. Registro → Verificar email (OTP 6 dígitos)
 2. Login → Dashboard
-3. Subir Proyecto → Seleccionar concurso y categoría → Datos del equipo → Cargar PDF
+3. Subir Proyecto → Seleccionar concurso y categoría → Datos del equipo → Cargar PDF → Capturar liga de YouTube (video)
 4. Ver calificación final cuando esté disponible
 
 ### Flujo Revisor
@@ -313,6 +323,10 @@ JWT_REFRESH_SECRET=otro_secreto
 JWT_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=7d
 
+# Emails (Resend)
+RESEND_API_KEY=tu_api_key_de_resend
+EMAIL_FROM="Concursos de Investigación <no-reply@tudominio.com>"
+
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USER=tu@email.com
@@ -322,6 +336,22 @@ CLIENT_URL=http://localhost:3000
 UPLOAD_DIR=uploads/projects
 MAX_FILE_SIZE=10485760
 ```
+
+### 📦 Almacenamiento de PDFs en producción (importante)
+
+Este sistema permite subir PDFs de proyectos. **En producción no se recomienda depender del filesystem del contenedor** (por ejemplo en Railway), porque en cada redeploy/restart el disco puede ser **efímero** y los archivos pueden perderse aunque el registro siga existiendo en MongoDB.
+
+- **Opción A (Railway Volume / disco persistente)**:
+  - Crear un Volume y montarlo (ej. mount path: `/data`)
+  - Configurar `UPLOAD_DIR` para apuntar al volumen:
+
+```env
+UPLOAD_DIR=/data/uploads/projects
+```
+
+- **Opción B (Object Storage: AWS S3 / Cloudflare R2 / etc.)**:
+  - Guardar los archivos en un bucket y persistir en MongoDB una URL (`fileUrl`) o una key del objeto.
+  - Recomendado si necesitas alta disponibilidad y escalabilidad.
 
 ### Configurar Gmail para 2FA
 1. Activar verificación en 2 pasos en tu cuenta Google
@@ -357,7 +387,7 @@ MAX_FILE_SIZE=10485760
 ## 📝 Notas de Desarrollo
 
 - El frontend usa React desde CDN con Babel transpilado en el navegador (ideal para desarrollo). En producción, crear un proyecto con Vite/CRA.
-- Los PDFs se almacenan en `server/uploads/projects/`. En producción, migrar a AWS S3 o similar.
+- En local los PDFs se almacenan en `server/uploads/projects/`. En producción, usar **Railway Volume** o **Object Storage** (S3/R2) para evitar pérdida de archivos en despliegues.
 - Para producción usar HTTPS y configurar Nginx como reverse proxy.
 
 ---

@@ -8,6 +8,7 @@ const teamMemberSchema = new mongoose.Schema({
 
 const projectSchema = new mongoose.Schema({
   title: { type: String, required: true, trim: true },
+  youtubeUrl: { type: String, required: true, trim: true },
   contestId: { type: mongoose.Schema.Types.ObjectId, ref: 'Contest', required: true },
   categoryId: { type: mongoose.Schema.Types.ObjectId },
   categoryName: { type: String },

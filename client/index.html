@@ -471,7 +471,7 @@ function LoginPage() {
         <div className="auth-footer">
           ¿No tienes cuenta? <a onClick={() => navigate('/register')}>Regístrate</a>
           
-          <div class="auth-version">Ver 1.0.0 <a href="https://github.com/Beowulfdgo/sistema-concursos" target="_blank" rel="noopener noreferrer">GitHub</a></div>
+          <div class="auth-version">Ver 1.2.0 <a href="https://github.com/Beowulfdgo/sistema-concursos" target="_blank" rel="noopener noreferrer">GitHub</a></div>
         </div>
       </div>
     </div>
@@ -1426,18 +1426,36 @@ function EvaluationPage() {
           <div><span style={{fontSize:12,color:'var(--text-3)'}}>REPRESENTANTE</span><div>{project?.representative?.name}</div></div>
           <div><span style={{fontSize:12,color:'var(--text-3)'}}>CATEGORÍA</span><div>{project?.categoryName}</div></div>
          {project?.filePath && (
+
   <button className="btn btn-secondary btn-sm" onClick={async () => {
-    try {
-      const response = await ax.get(`/projects/${project._id}/file`, {
-        responseType: 'blob'
-      });
-      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
-      window.open(url, '_blank');
-    } catch (err) {
-      alert('No se pudo cargar el PDF');
-    }
-  }}>
+
+  try {
+    const token = localStorage.getItem("tk");
+
+    const response = await ax.get(`/projects/${project._id}/file`, {
+      responseType: 'blob',
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    const url = window.URL.createObjectURL(
+      new Blob([response.data], { type: 'application/pdf' })
+    );
+
+    window.open(url, '_blank');
+  } catch (err) {
+    console.error(err);
+    alert('No se pudo cargar el PDF');
+  }
+}}>
+
     📄 Ver PDF
+  </button>
+)}
+         {project?.youtubeUrl && (
+  <button className="btn btn-secondary btn-sm" onClick={() => window.open(project.youtubeUrl, '_blank')}>
+    📺 Ver Video
   </button>
 )}
           </div>
@@ -1599,7 +1617,7 @@ function StudentDashboard() {
 }
 
 function UploadProjectModal({ contests, onClose, onSaved, user }) {
-  const [form, setForm] = useState({ title:'', contestId:'', categoryId:'', teamMembers:[] });
+  const [form, setForm] = useState({ title:'', contestId:'', categoryId:'', youtubeUrl:'', teamMembers:[] });
   const [file, setFile] = useState(null);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -1612,6 +1630,7 @@ function UploadProjectModal({ contests, onClose, onSaved, user }) {
       title: '',
       contestId: '',
       categoryId: '',
+      youtubeUrl: '',
       teamMembers: [{ name: user.name, email: user.email, isRepresentative: true }],
     });
   }, [user]);
@@ -1625,8 +1644,40 @@ function UploadProjectModal({ contests, onClose, onSaved, user }) {
   const handleFile = f => { if (f?.type==='application/pdf') setFile(f); else setError('Solo se permiten archivos PDF'); };
   const onDrop = e => { e.preventDefault(); setDrag(false); handleFile(e.dataTransfer.files[0]); };
 
+  const extractYoutubeVideoId = (url) => {
+    if (!url || typeof url !== 'string') return null;
+    const u = url.trim();
+    try {
+      const parsed = new URL(u);
+      const host = parsed.hostname.replace(/^www\./, '');
+      if (host === 'youtu.be') {
+        const id = parsed.pathname.replace(/^\//, '').split('/')[0];
+        return /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null;
+      }
+      if (host === 'youtube.com' || host === 'm.youtube.com') {
+        if (parsed.pathname === '/watch') {
+          const id = parsed.searchParams.get('v');
+          return id && /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null;
+        }
+        const m = parsed.pathname.match(/^\/(embed|shorts)\/([A-Za-z0-9_-]{11})/);
+        if (m?.[2]) return m[2];
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  const normalizeYoutubeUrl = (url) => {
+    const id = extractYoutubeVideoId(url);
+    return id ? `https://www.youtube.com/watch?v=${id}` : null;
+  };
+
   const save = async () => {
     if (!form.title||!form.contestId||!file) return setError('Título, concurso y archivo PDF son requeridos');
+    if (!form.youtubeUrl) return setError('La URL de video de YouTube es requerida');
+    const normalizedYoutubeUrl = normalizeYoutubeUrl(form.youtubeUrl);
+    if (!normalizedYoutubeUrl) return setError('URL de YouTube inválida. Formatos: https://www.youtube.com/watch?v=VIDEO_ID, https://youtu.be/VIDEO_ID, https://www.youtube.com/embed/VIDEO_ID, https://www.youtube.com/shorts/VIDEO_ID');
     setSaving(true); setError('');
     try {
       const fd = new FormData();
@@ -1634,6 +1685,7 @@ function UploadProjectModal({ contests, onClose, onSaved, user }) {
       fd.append('contestId', form.contestId);
       fd.append('categoryId', form.categoryId||'000000000000000000000000');
       fd.append('categoryName', selContest?.categories?.find(c=>c._id===form.categoryId)?.name||'');
+      fd.append('youtubeUrl', normalizedYoutubeUrl);
       fd.append('teamMembers', JSON.stringify(form.teamMembers.filter(m=>m.name)));
       fd.append('file', file);
       await ax.post('/projects', fd, { headers:{ 'Content-Type':'multipart/form-data' }});
@@ -1660,6 +1712,33 @@ function UploadProjectModal({ contests, onClose, onSaved, user }) {
             {selContest.categories.map(c=><option key={c._id} value={c._id}>{c.name}</option>)}
           </select></div>
       )}
+      <div className="form-group">
+        <label className="form-label">URL de video de YouTube *</label>
+        <input
+          className="form-input"
+          value={form.youtubeUrl}
+          onChange={e=>setForm({...form,youtubeUrl:e.target.value})}
+          placeholder="https://www.youtube.com/watch?v=VIDEO_ID ó https://youtu.be/VIDEO_ID"
+        />
+        <div style={{ marginTop: 6, fontSize: 12, color: 'var(--text-3)' }}>
+          Formatos aceptados:{' '}
+          <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace' }}>
+            https://www.youtube.com/watch?v=VIDEO_ID
+          </span>
+          {' '}•{' '}
+          <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace' }}>
+            https://youtu.be/VIDEO_ID
+          </span>
+          {' '}•{' '}
+          <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace' }}>
+            https://www.youtube.com/embed/VIDEO_ID
+          </span>
+          {' '}•{' '}
+          <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace' }}>
+            https://www.youtube.com/shorts/VIDEO_ID
+          </span>
+        </div>
+      </div>
       <div className="form-group">
         <label className="form-label">Integrantes del equipo</label>
         {form.teamMembers.map((m,i)=>(
