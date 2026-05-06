@@ -19,8 +19,20 @@ Ajustes en configuración de staging para despliegue continuo
 [Unreleased]
 Added
 
+- Validación de URL de YouTube por extracción de `videoId` (11 caracteres) y soporte de formatos:
+  - `https://www.youtube.com/watch?v=VIDEO_ID`
+  - `https://youtu.be/VIDEO_ID`
+  - `https://www.youtube.com/embed/VIDEO_ID`
+  - `https://www.youtube.com/shorts/VIDEO_ID`
+- Normalización de `youtubeUrl` a formato canónico `https://www.youtube.com/watch?v=VIDEO_ID` al registrar proyectos.
+- Soporte de configuración de almacenamiento de PDFs vía `UPLOAD_DIR` (para volúmenes persistentes en Railway u otras plataformas).
+
 
 Fixed
 
+- Corrección/robustez en recuperación de PDF (`GET /api/v1/projects/:id/file`) resolviendo rutas guardadas en BD (Windows/Linux, absolutas/relativas) para reducir falsos 404.
+
 
 Changed
+
+- Unificación de `UPLOAD_DIR` en el middleware de carga (Multer) para que todas las subidas respeten la misma variable de entorno.
