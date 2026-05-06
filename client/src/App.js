@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import Layout from './components/common/Layout';
-import LoginPage from './pages/AuthPages';
+import { LoginPage } from './pages/AuthPages';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import ReviewerDashboard from './pages/reviewer/ReviewerDashboard';
 import EvaluateProject from './pages/reviewer/EvaluateProject';

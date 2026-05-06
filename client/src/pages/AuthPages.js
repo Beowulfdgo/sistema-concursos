@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Button, Input, Alert } from '../../components/common/UI';
+
+
+import { Button, Input, Alert } from '../components/common/UI';
+
+
+
 
 const AuthCard = ({ children, title, subtitle }) => (
   <div style={{ minHeight: '100vh', display: 'flex', background: 'linear-gradient(135deg, var(--gray-900) 0%, #1a1a2e 50%, var(--gray-900) 100%)', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
@@ -116,7 +121,7 @@ export const VerifyEmailPage = () => {
     e.preventDefault();
     setError(''); setLoading(true);
     try {
-      const api = (await import('../../api/axios')).default;
+      const api = (await import('../api/axios')).default;
       await api.post('/auth/verify-email', { email, code });
       setSuccess(true);
       setTimeout(() => navigate('/login'), 2000);
@@ -127,7 +132,7 @@ export const VerifyEmailPage = () => {
 
   const resend = async () => {
     try {
-      const api = (await import('../../api/axios')).default;
+      const api = (await import('../api/axios')).default;
       await api.post('/auth/resend-code', { email });
       setError('');
     } catch {}
