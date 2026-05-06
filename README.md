@@ -337,6 +337,22 @@ UPLOAD_DIR=uploads/projects
 MAX_FILE_SIZE=10485760
 ```
 
+### 📦 Almacenamiento de PDFs en producción (importante)
+
+Este sistema permite subir PDFs de proyectos. **En producción no se recomienda depender del filesystem del contenedor** (por ejemplo en Railway), porque en cada redeploy/restart el disco puede ser **efímero** y los archivos pueden perderse aunque el registro siga existiendo en MongoDB.
+
+- **Opción A (Railway Volume / disco persistente)**:
+  - Crear un Volume y montarlo (ej. mount path: `/data`)
+  - Configurar `UPLOAD_DIR` para apuntar al volumen:
+
+```env
+UPLOAD_DIR=/data/uploads/projects
+```
+
+- **Opción B (Object Storage: AWS S3 / Cloudflare R2 / etc.)**:
+  - Guardar los archivos en un bucket y persistir en MongoDB una URL (`fileUrl`) o una key del objeto.
+  - Recomendado si necesitas alta disponibilidad y escalabilidad.
+
 ### Configurar Gmail para 2FA
 1. Activar verificación en 2 pasos en tu cuenta Google
 2. Ir a Seguridad → Contraseñas de aplicación
@@ -371,7 +387,7 @@ MAX_FILE_SIZE=10485760
 ## 📝 Notas de Desarrollo
 
 - El frontend usa React desde CDN con Babel transpilado en el navegador (ideal para desarrollo). En producción, crear un proyecto con Vite/CRA.
-- Los PDFs se almacenan en `server/uploads/projects/`. En producción, migrar a AWS S3 o similar.
+- En local los PDFs se almacenan en `server/uploads/projects/`. En producción, usar **Railway Volume** o **Object Storage** (S3/R2) para evitar pérdida de archivos en despliegues.
 - Para producción usar HTTPS y configurar Nginx como reverse proxy.
 
 ---

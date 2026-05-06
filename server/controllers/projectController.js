@@ -30,10 +30,39 @@ function resolveProjectFilePath(storedPath) {
   return null;
 }
 
-const isValidYoutubeShareUrl = (url) => {
-  if (!url || typeof url !== 'string') return false;
-  return /^https:\/\/youtu\.be\/[A-Za-z0-9_-]{11}\?si=[A-Za-z0-9_-]+$/.test(url.trim());
-};
+
+function extractYoutubeVideoId(url) {
+  if (!url || typeof url !== 'string') return null;
+  const u = url.trim();
+  try {
+    const parsed = new URL(u);
+    const host = parsed.hostname.replace(/^www\./, '');
+
+    if (host === 'youtu.be') {
+      const id = parsed.pathname.replace(/^\//, '').split('/')[0];
+      return /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null;
+    }
+
+    if (host === 'youtube.com' || host === 'm.youtube.com') {
+      if (parsed.pathname === '/watch') {
+        const id = parsed.searchParams.get('v');
+        return id && /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null;
+      }
+      const m = parsed.pathname.match(/^\/(embed|shorts)\/([A-Za-z0-9_-]{11})/);
+      if (m?.[2]) return m[2];
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeYoutubeUrl(url) {
+  const id = extractYoutubeVideoId(url);
+  return id ? `https://www.youtube.com/watch?v=${id}` : null;
+}
+
 
 exports.getProjects = async (req, res, next) => {
   try {
@@ -76,9 +105,10 @@ exports.createProject = async (req, res, next) => {
     if (existingProject) return res.status(400).json({ message: 'Ya tienes un proyecto registrado en este concurso.' });
 
     if (!youtubeUrl) return res.status(400).json({ message: 'La URL de video de YouTube es requerida.' });
-    if (!isValidYoutubeShareUrl(youtubeUrl)) {
+    const normalizedYoutubeUrl = normalizeYoutubeUrl(youtubeUrl);
+    if (!normalizedYoutubeUrl) {
       return res.status(400).json({
-        message: 'URL de YouTube inválida. Formato requerido: https://youtu.be/<id>?si=<token>',
+        message: 'URL de YouTube inválida. Formatos: https://www.youtube.com/watch?v=VIDEO_ID, https://youtu.be/VIDEO_ID, https://www.youtube.com/embed/VIDEO_ID, https://www.youtube.com/shorts/VIDEO_ID',
       });
     }
 
@@ -106,7 +136,7 @@ exports.createProject = async (req, res, next) => {
 
     const projectData = {
       title, contestId, categoryId, categoryName,
-      youtubeUrl: youtubeUrl.trim(),
+      youtubeUrl: normalizedYoutubeUrl,
       representative: req.user.id,
       teamMembers: members,
     };
