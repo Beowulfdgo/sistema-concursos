@@ -221,12 +221,18 @@ exports.exportActiveStudentsExcel = async (req, res, next) => {
       .populate('representative', 'name role status')
       .lean();
 
+    // Separate evaluated from not evaluated
+    const evaluatedProjects = projects.filter(p => p.status === 'evaluated' && p.finalScore !== null);
+    const notEvaluatedProjects = projects.filter(p => p.status !== 'evaluated' || p.finalScore === null);
+
     const rows = [
-      ['Nombre del concurso', 'Nombre del proyecto', 'Nombre del alumno', 'Fecha de inicio', 'Fecha final del concurso']
+      ['Concursos — Alumnos (Evaluados)'],
+      ['Nombre del concurso', 'Nombre del proyecto', 'Nombre del alumno', 'Rol', 'Calificación', 'Fecha de inicio', 'Fecha final del concurso']
     ];
 
-    projects
-      .filter(p => p.representative?.role === 'student' && p.representative?.status === 'active' && p.contestId)
+    // Add evaluated students
+    evaluatedProjects
+      .filter(p => p.contestId)
       .sort((a, b) => {
         if (a.contestId.name < b.contestId.name) return -1;
         if (a.contestId.name > b.contestId.name) return 1;
@@ -235,11 +241,81 @@ exports.exportActiveStudentsExcel = async (req, res, next) => {
       .forEach(p => {
         const startDate = p.contestId.startDate ? new Date(p.contestId.startDate).toLocaleDateString('es-MX') : '';
         const endDate = p.contestId.endDate ? new Date(p.contestId.endDate).toLocaleDateString('es-MX') : '';
-        rows.push([p.contestId.name, p.title || '—', p.representative.name, startDate, endDate]);
+        
+        // Add representative
+        rows.push([
+          p.contestId.name,
+          p.title || '—',
+          p.representative.name,
+          'Representante',
+          p.finalScore || '—',
+          startDate,
+          endDate
+        ]);
+        
+        // Add team members
+        if (p.teamMembers && p.teamMembers.length > 0) {
+          p.teamMembers.forEach(member => {
+            rows.push([
+              p.contestId.name,
+              p.title || '—',
+              member.name,
+              member.isRepresentative ? 'Representante' : 'Integrante',
+              p.finalScore || '—',
+              startDate,
+              endDate
+            ]);
+          });
+        }
+      });
+
+    // Add separator
+    rows.push([]);
+    rows.push(['Concursos — Alumnos (No Evaluados)']);
+    rows.push(['Nombre del concurso', 'Nombre del proyecto', 'Nombre del alumno', 'Rol', 'Estado', 'Fecha de inicio', 'Fecha final del concurso']);
+
+    // Add not evaluated students
+    notEvaluatedProjects
+      .filter(p => p.contestId)
+      .sort((a, b) => {
+        if (a.contestId.name < b.contestId.name) return -1;
+        if (a.contestId.name > b.contestId.name) return 1;
+        return a.representative.name.localeCompare(b.representative.name);
+      })
+      .forEach(p => {
+        const startDate = p.contestId.startDate ? new Date(p.contestId.startDate).toLocaleDateString('es-MX') : '';
+        const endDate = p.contestId.endDate ? new Date(p.contestId.endDate).toLocaleDateString('es-MX') : '';
+        const statusLabel = p.status === 'under_review' ? 'En revisión' : 'Enviado';
+        
+        // Add representative
+        rows.push([
+          p.contestId.name,
+          p.title || '—',
+          p.representative.name,
+          'Representante',
+          statusLabel,
+          startDate,
+          endDate
+        ]);
+        
+        // Add team members
+        if (p.teamMembers && p.teamMembers.length > 0) {
+          p.teamMembers.forEach(member => {
+            rows.push([
+              p.contestId.name,
+              p.title || '—',
+              member.name,
+              member.isRepresentative ? 'Representante' : 'Integrante',
+              statusLabel,
+              startDate,
+              endDate
+            ]);
+          });
+        }
       });
 
     const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
-    const filename = `alumnos_activos_${new Date().toISOString().slice(0, 10)}.csv`;
+    const filename = `alumnos_${new Date().toISOString().slice(0, 10)}.csv`;
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
