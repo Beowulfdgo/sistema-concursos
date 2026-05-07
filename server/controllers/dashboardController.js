@@ -221,9 +221,14 @@ exports.exportActiveStudentsExcel = async (req, res, next) => {
       .populate('representative', 'name role status')
       .lean();
 
+    console.log('Total projects found:', projects.length);
+
     // Separate evaluated from not evaluated
-    const evaluatedProjects = projects.filter(p => p.status === 'evaluated' && p.finalScore !== null);
-    const notEvaluatedProjects = projects.filter(p => p.status !== 'evaluated' || p.finalScore === null);
+    const evaluatedProjects = projects.filter(p => p.status === 'evaluated' && p.finalScore !== null && p.representative?.role === 'student' && p.representative?.status === 'active' && p.contestId);
+    const notEvaluatedProjects = projects.filter(p => (p.status !== 'evaluated' || p.finalScore === null) && p.representative?.role === 'student' && p.representative?.status === 'active' && p.contestId);
+
+    console.log('Evaluated projects:', evaluatedProjects.length);
+    console.log('Not evaluated projects:', notEvaluatedProjects.length);
 
     const rows = [
       ['Concursos — Alumnos (Evaluados)'],
@@ -232,15 +237,11 @@ exports.exportActiveStudentsExcel = async (req, res, next) => {
 
     // Add evaluated students
     evaluatedProjects
-      .filter(p => p.contestId)
-      .sort((a, b) => {
-        if (a.contestId.name < b.contestId.name) return -1;
-        if (a.contestId.name > b.contestId.name) return 1;
-        return a.representative.name.localeCompare(b.representative.name);
-      })
       .forEach(p => {
         const startDate = p.contestId.startDate ? new Date(p.contestId.startDate).toLocaleDateString('es-MX') : '';
         const endDate = p.contestId.endDate ? new Date(p.contestId.endDate).toLocaleDateString('es-MX') : '';
+        
+        console.log('Processing evaluated project:', p.title, 'teamMembers:', p.teamMembers?.length);
         
         // Add all team members (including representative)
         if (p.teamMembers && p.teamMembers.length > 0) {
@@ -276,16 +277,12 @@ exports.exportActiveStudentsExcel = async (req, res, next) => {
 
     // Add not evaluated students
     notEvaluatedProjects
-      .filter(p => p.contestId)
-      .sort((a, b) => {
-        if (a.contestId.name < b.contestId.name) return -1;
-        if (a.contestId.name > b.contestId.name) return 1;
-        return a.representative.name.localeCompare(b.representative.name);
-      })
       .forEach(p => {
         const startDate = p.contestId.startDate ? new Date(p.contestId.startDate).toLocaleDateString('es-MX') : '';
         const endDate = p.contestId.endDate ? new Date(p.contestId.endDate).toLocaleDateString('es-MX') : '';
         const statusLabel = p.status === 'under_review' ? 'En revisión' : 'Enviado';
+        
+        console.log('Processing not evaluated project:', p.title, 'teamMembers:', p.teamMembers?.length);
         
         // Add all team members (including representative)
         if (p.teamMembers && p.teamMembers.length > 0) {
@@ -314,11 +311,16 @@ exports.exportActiveStudentsExcel = async (req, res, next) => {
         }
       });
 
+    console.log('Total rows generated:', rows.length);
+
     const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
-    const filename = `alumnos_${new Date().toISOString().slice(0, 10)}.csv`;
+    const filename = `alumnos_debug_${new Date().toISOString().slice(0, 10)}.csv`;
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send('\uFEFF' + csv);
-  } catch (err) { next(err); }
+  } catch (err) { 
+    console.error('Error in exportActiveStudentsExcel:', err);
+    next(err); 
+  }
 };
