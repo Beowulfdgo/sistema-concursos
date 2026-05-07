@@ -1696,7 +1696,7 @@ function UploadProjectModal({ contests, onClose, onSaved, user }) {
 
   return (
     <Modal title="📤 Subir Proyecto" onClose={onClose}
-      footer={<><button className="btn btn-secondary" onClick={onClose}>Cancelar</button><button className="btn btn-primary" onClick={save} disabled={saving}>{saving?'Subiendo...':'Registrar Proyecto'}</button></>}>
+      footer={<><button className="btn btn-secondary" onClick={onClose}>Cancelar</button><button className="btn btn-primary" onClick={() => { if (window.confirm('¿Estás seguro de que los datos están correctos? Una vez registrado el proyecto, no podrás agregar alumnos, cambiar videos ni subir archivos PDF.')) save(); }} disabled={saving}>{saving?'Subiendo...':'Registrar Proyecto'}</button></>}>
       {error && <Alert type="error">{error}</Alert>}
       <div className="form-group"><label className="form-label">Título del proyecto *</label>
         <input className="form-input" value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder="Nombre de tu proyecto" /></div>
