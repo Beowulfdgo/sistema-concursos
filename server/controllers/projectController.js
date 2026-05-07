@@ -105,6 +105,7 @@ exports.createProject = async (req, res, next) => {
     const existingProject = await Project.findOne({ representative: req.user.id });
     if (existingProject) return res.status(400).json({ message: 'Ya tienes un proyecto registrado. Solo puedes subir un proyecto por estudiante.' });
 
+
     if (!youtubeUrl) return res.status(400).json({ message: 'La URL de video de YouTube es requerida.' });
     const normalizedYoutubeUrl = normalizeYoutubeUrl(youtubeUrl);
     if (!normalizedYoutubeUrl) {
