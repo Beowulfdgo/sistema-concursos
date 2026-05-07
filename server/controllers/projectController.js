@@ -113,15 +113,6 @@ exports.createProject = async (req, res, next) => {
       });
     }
 
-
-    if (!youtubeUrl) return res.status(400).json({ message: 'La URL de video de YouTube es requerida.' });
-    const normalizedYoutubeUrl = normalizeYoutubeUrl(youtubeUrl);
-    if (!normalizedYoutubeUrl) {
-      return res.status(400).json({
-        message: 'URL de YouTube inválida. Formatos: https://www.youtube.com/watch?v=VIDEO_ID, https://youtu.be/VIDEO_ID, https://www.youtube.com/embed/VIDEO_ID, https://www.youtube.com/shorts/VIDEO_ID',
-      });
-    }
-
     // Parse team members from request body
     let members = [];
     if (teamMembers) {
