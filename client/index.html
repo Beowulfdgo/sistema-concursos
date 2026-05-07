@@ -1555,7 +1555,7 @@ function StudentDashboard() {
 
   return (
     <StudentLayout title="Mi Proyecto" path="/student/dashboard"
-      actions={<button className="btn btn-primary" onClick={()=>setShowUpload(true)}>📤 Subir Proyecto</button>}>
+      actions={<button className="btn btn-primary" onClick={()=>setShowUpload(true)} disabled={projects.length > 0}>📤 Subir Proyecto</button>}>
       <div style={{marginBottom:16,background:'linear-gradient(135deg,var(--blue),var(--blue-light))',borderRadius:12,padding:'20px 24px',color:'#fff'}}>
         <div style={{fontSize:12,opacity:.7}}>BIENVENIDO</div>
         <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:24}}>{user?.name}</h2>
