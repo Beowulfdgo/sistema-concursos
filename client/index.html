@@ -1555,7 +1555,7 @@ function StudentDashboard() {
 
   return (
     <StudentLayout title="Mi Proyecto" path="/student/dashboard"
-      actions={<button className="btn btn-primary" onClick={()=>setShowUpload(true)}>📤 Subir Proyecto</button>}>
+      actions={<button className="btn btn-primary" onClick={()=>setShowUpload(true)} disabled={projects.length > 0}>📤 Subir Proyecto</button>}>
       <div style={{marginBottom:16,background:'linear-gradient(135deg,var(--blue),var(--blue-light))',borderRadius:12,padding:'20px 24px',color:'#fff'}}>
         <div style={{fontSize:12,opacity:.7}}>BIENVENIDO</div>
         <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:24}}>{user?.name}</h2>
@@ -1696,7 +1696,7 @@ function UploadProjectModal({ contests, onClose, onSaved, user }) {
 
   return (
     <Modal title="📤 Subir Proyecto" onClose={onClose}
-      footer={<><button className="btn btn-secondary" onClick={onClose}>Cancelar</button><button className="btn btn-primary" onClick={save} disabled={saving}>{saving?'Subiendo...':'Registrar Proyecto'}</button></>}>
+      footer={<><button className="btn btn-secondary" onClick={onClose}>Cancelar</button><button className="btn btn-primary" onClick={() => { if (window.confirm('¿Estás seguro de que los datos están correctos? Una vez registrado el proyecto, no podrás agregar alumnos, cambiar videos ni subir archivos PDF.')) save(); }} disabled={saving}>{saving?'Subiendo...':'Registrar Proyecto'}</button></>}>
       {error && <Alert type="error">{error}</Alert>}
       <div className="form-group"><label className="form-label">Título del proyecto *</label>
         <input className="form-input" value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder="Nombre de tu proyecto" /></div>
