@@ -242,18 +242,7 @@ exports.exportActiveStudentsExcel = async (req, res, next) => {
         const startDate = p.contestId.startDate ? new Date(p.contestId.startDate).toLocaleDateString('es-MX') : '';
         const endDate = p.contestId.endDate ? new Date(p.contestId.endDate).toLocaleDateString('es-MX') : '';
         
-        // Add representative
-        rows.push([
-          p.contestId.name,
-          p.title || '—',
-          p.representative.name,
-          'Representante',
-          p.finalScore || '—',
-          startDate,
-          endDate
-        ]);
-        
-        // Add team members
+        // Add all team members (including representative)
         if (p.teamMembers && p.teamMembers.length > 0) {
           p.teamMembers.forEach(member => {
             rows.push([
@@ -266,6 +255,17 @@ exports.exportActiveStudentsExcel = async (req, res, next) => {
               endDate
             ]);
           });
+        } else {
+          // Fallback if no teamMembers (shouldn't happen)
+          rows.push([
+            p.contestId.name,
+            p.title || '—',
+            p.representative.name,
+            'Representante',
+            p.finalScore || '—',
+            startDate,
+            endDate
+          ]);
         }
       });
 
@@ -287,18 +287,7 @@ exports.exportActiveStudentsExcel = async (req, res, next) => {
         const endDate = p.contestId.endDate ? new Date(p.contestId.endDate).toLocaleDateString('es-MX') : '';
         const statusLabel = p.status === 'under_review' ? 'En revisión' : 'Enviado';
         
-        // Add representative
-        rows.push([
-          p.contestId.name,
-          p.title || '—',
-          p.representative.name,
-          'Representante',
-          statusLabel,
-          startDate,
-          endDate
-        ]);
-        
-        // Add team members
+        // Add all team members (including representative)
         if (p.teamMembers && p.teamMembers.length > 0) {
           p.teamMembers.forEach(member => {
             rows.push([
@@ -311,6 +300,17 @@ exports.exportActiveStudentsExcel = async (req, res, next) => {
               endDate
             ]);
           });
+        } else {
+          // Fallback if no teamMembers (shouldn't happen)
+          rows.push([
+            p.contestId.name,
+            p.title || '—',
+            p.representative.name,
+            'Representante',
+            statusLabel,
+            startDate,
+            endDate
+          ]);
         }
       });
 
