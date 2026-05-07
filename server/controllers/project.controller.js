@@ -120,9 +120,9 @@ exports.createProject = async (req, res, next) => {
     if (!contest) return res.status(404).json({ message: 'Concurso no encontrado' });
     if (!contest.isOpen) return res.status(400).json({ message: 'El concurso no está abierto para inscripciones' });
 
-    // Check student hasn't already submitted to this contest
-    const existing = await Project.findOne({ contestId, representative: req.user._id });
-    if (existing) return res.status(409).json({ message: 'Ya tienes un proyecto en este concurso' });
+    // Check student hasn't already submitted a project
+    const existing = await Project.findOne({ representative: req.user._id });
+    if (existing) return res.status(409).json({ message: 'Ya tienes un proyecto registrado. Solo puedes subir un proyecto por estudiante.' });
 
     // Add the logged-in user as representative in team members
     const representativeMember = {
