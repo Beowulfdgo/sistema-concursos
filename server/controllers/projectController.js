@@ -5,7 +5,6 @@ const Assignment = require('../models/Assignment');
 
 function normalizeStoredPath(p) {
   if (!p || typeof p !== 'string') return null;
-  // Normalize windows separators coming from DB.
   return p.replace(/\\/g, '/').trim();
 }
 
@@ -13,23 +12,19 @@ function resolveProjectFilePath(storedPath) {
   const normalized = normalizeStoredPath(storedPath);
   if (!normalized) return null;
 
-  // 1) Absolute path as-is
   if (path.isAbsolute(normalized) && fs.existsSync(normalized)) return normalized;
 
-  // 2) Relative to server root (../ from this controller folder)
   const serverRoot = path.resolve(__dirname, '..');
-  const rel = normalized.replace(/^\/+/, ''); // avoid treating as absolute
+  const rel = normalized.replace(/^\/+/, '');
   const candidateFromServerRoot = path.resolve(serverRoot, rel);
   if (fs.existsSync(candidateFromServerRoot)) return candidateFromServerRoot;
 
-  // 3) If path contains uploads/projects, try reconstructing from filename
   const base = path.basename(rel);
   const candidateUploads = path.resolve(serverRoot, 'uploads', 'projects', base);
   if (fs.existsSync(candidateUploads)) return candidateUploads;
 
   return null;
 }
-
 
 function extractYoutubeVideoId(url) {
   if (!url || typeof url !== 'string') return null;
@@ -62,68 +57,6 @@ function normalizeYoutubeUrl(url) {
   const id = extractYoutubeVideoId(url);
   return id ? `https://www.youtube.com/watch?v=${id}` : null;
 }
-
-
-function normalizeStoredPath(p) {
-  if (!p || typeof p !== 'string') return null;
-  // Normalize windows separators coming from DB.
-  return p.replace(/\\/g, '/').trim();
-}
-
-function resolveProjectFilePath(storedPath) {
-  const normalized = normalizeStoredPath(storedPath);
-  if (!normalized) return null;
-
-  // 1) Absolute path as-is
-  if (path.isAbsolute(normalized) && fs.existsSync(normalized)) return normalized;
-
-  // 2) Relative to server root (../ from this controller folder)
-  const serverRoot = path.resolve(__dirname, '..');
-  const rel = normalized.replace(/^\/+/, ''); // avoid treating as absolute
-  const candidateFromServerRoot = path.resolve(serverRoot, rel);
-  if (fs.existsSync(candidateFromServerRoot)) return candidateFromServerRoot;
-
-  // 3) If path contains uploads/projects, try reconstructing from filename
-  const base = path.basename(rel);
-  const candidateUploads = path.resolve(serverRoot, 'uploads', 'projects', base);
-  if (fs.existsSync(candidateUploads)) return candidateUploads;
-
-  return null;
-}
-
-
-function extractYoutubeVideoId(url) {
-  if (!url || typeof url !== 'string') return null;
-  const u = url.trim();
-  try {
-    const parsed = new URL(u);
-    const host = parsed.hostname.replace(/^www\./, '');
-
-    if (host === 'youtu.be') {
-      const id = parsed.pathname.replace(/^\//, '').split('/')[0];
-      return /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null;
-    }
-
-    if (host === 'youtube.com' || host === 'm.youtube.com') {
-      if (parsed.pathname === '/watch') {
-        const id = parsed.searchParams.get('v');
-        return id && /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null;
-      }
-      const m = parsed.pathname.match(/^\/(embed|shorts)\/([A-Za-z0-9_-]{11})/);
-      if (m?.[2]) return m[2];
-    }
-
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-function normalizeYoutubeUrl(url) {
-  const id = extractYoutubeVideoId(url);
-  return id ? `https://www.youtube.com/watch?v=${id}` : null;
-}
-
 
 exports.getProjects = async (req, res, next) => {
   try {
@@ -166,7 +99,6 @@ exports.createProject = async (req, res, next) => {
     const existingProject = await Project.findOne({ representative: req.user.id });
     if (existingProject) return res.status(400).json({ message: 'Ya tienes un proyecto registrado. Solo puedes subir un proyecto por estudiante.' });
 
-
     if (!youtubeUrl) return res.status(400).json({ message: 'La URL de video de YouTube es requerida.' });
     const normalizedYoutubeUrl = normalizeYoutubeUrl(youtubeUrl);
     if (!normalizedYoutubeUrl) {
@@ -175,41 +107,35 @@ exports.createProject = async (req, res, next) => {
       });
     }
 
-    // Parse team members from request body
     let members = [];
     if (teamMembers) {
       members = typeof teamMembers === 'string' ? JSON.parse(teamMembers) : teamMembers;
     }
 
-    // Add the logged-in user as representative in team members
     const representativeMember = {
       name: req.user.name,
       email: req.user.email,
-      isRepresentative: true
+      isRepresentative: true,
     };
 
-    // Check if representative is already in the list, if not, add at the beginning
     const existingRepIndex = members.findIndex(m => m.email === req.user.email);
     if (existingRepIndex === -1) {
       members.unshift(representativeMember);
     } else {
-      // If already exists, ensure isRepresentative is true
       members[existingRepIndex].isRepresentative = true;
     }
 
     const projectData = {
-      title, contestId, categoryId, categoryName,
-      youtubeUrl: normalizedYoutubeUrl,
+      title,
+      contestId,
+      categoryId,
+      categoryName,
       youtubeUrl: normalizedYoutubeUrl,
       representative: req.user.id,
       teamMembers: members,
     };
 
     if (req.file) {
-      // Store a portable path relative to server root (uploads/...)
-      const serverRoot = path.resolve(__dirname, '..');
-      projectData.filePath = path.relative(serverRoot, req.file.path).replace(/\\/g, '/');
-      // Store a portable path relative to server root (uploads/...)
       const serverRoot = path.resolve(__dirname, '..');
       projectData.filePath = path.relative(serverRoot, req.file.path).replace(/\\/g, '/');
       projectData.fileName = req.file.originalname;
@@ -230,11 +156,6 @@ exports.updateProject = async (req, res, next) => {
 
     Object.assign(project, req.body);
     if (req.file) {
-      // Delete old file
-      const prev = resolveProjectFilePath(project.filePath);
-      if (prev && fs.existsSync(prev)) fs.unlinkSync(prev);
-      const serverRoot = path.resolve(__dirname, '..');
-      project.filePath = path.relative(serverRoot, req.file.path).replace(/\\/g, '/');
       const prev = resolveProjectFilePath(project.filePath);
       if (prev && fs.existsSync(prev)) fs.unlinkSync(prev);
       const serverRoot = path.resolve(__dirname, '..');
@@ -252,8 +173,6 @@ exports.getProjectFile = async (req, res, next) => {
     const project = await Project.findById(req.params.id);
     if (!project?.filePath) return res.status(404).json({ message: 'Archivo no encontrado.' });
 
-    const filePath = resolveProjectFilePath(project.filePath);
-    if (!filePath) return res.status(404).json({ message: 'Archivo no encontrado en el servidor.' });
     const filePath = resolveProjectFilePath(project.filePath);
     if (!filePath) return res.status(404).json({ message: 'Archivo no encontrado en el servidor.' });
 
