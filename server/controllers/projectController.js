@@ -64,6 +64,67 @@ function normalizeYoutubeUrl(url) {
 }
 
 
+function normalizeStoredPath(p) {
+  if (!p || typeof p !== 'string') return null;
+  // Normalize windows separators coming from DB.
+  return p.replace(/\\/g, '/').trim();
+}
+
+function resolveProjectFilePath(storedPath) {
+  const normalized = normalizeStoredPath(storedPath);
+  if (!normalized) return null;
+
+  // 1) Absolute path as-is
+  if (path.isAbsolute(normalized) && fs.existsSync(normalized)) return normalized;
+
+  // 2) Relative to server root (../ from this controller folder)
+  const serverRoot = path.resolve(__dirname, '..');
+  const rel = normalized.replace(/^\/+/, ''); // avoid treating as absolute
+  const candidateFromServerRoot = path.resolve(serverRoot, rel);
+  if (fs.existsSync(candidateFromServerRoot)) return candidateFromServerRoot;
+
+  // 3) If path contains uploads/projects, try reconstructing from filename
+  const base = path.basename(rel);
+  const candidateUploads = path.resolve(serverRoot, 'uploads', 'projects', base);
+  if (fs.existsSync(candidateUploads)) return candidateUploads;
+
+  return null;
+}
+
+
+function extractYoutubeVideoId(url) {
+  if (!url || typeof url !== 'string') return null;
+  const u = url.trim();
+  try {
+    const parsed = new URL(u);
+    const host = parsed.hostname.replace(/^www\./, '');
+
+    if (host === 'youtu.be') {
+      const id = parsed.pathname.replace(/^\//, '').split('/')[0];
+      return /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null;
+    }
+
+    if (host === 'youtube.com' || host === 'm.youtube.com') {
+      if (parsed.pathname === '/watch') {
+        const id = parsed.searchParams.get('v');
+        return id && /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null;
+      }
+      const m = parsed.pathname.match(/^\/(embed|shorts)\/([A-Za-z0-9_-]{11})/);
+      if (m?.[2]) return m[2];
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeYoutubeUrl(url) {
+  const id = extractYoutubeVideoId(url);
+  return id ? `https://www.youtube.com/watch?v=${id}` : null;
+}
+
+
 exports.getProjects = async (req, res, next) => {
   try {
     const { contestId, status } = req.query;
@@ -139,11 +200,15 @@ exports.createProject = async (req, res, next) => {
     const projectData = {
       title, contestId, categoryId, categoryName,
       youtubeUrl: normalizedYoutubeUrl,
+      youtubeUrl: normalizedYoutubeUrl,
       representative: req.user.id,
       teamMembers: members,
     };
 
     if (req.file) {
+      // Store a portable path relative to server root (uploads/...)
+      const serverRoot = path.resolve(__dirname, '..');
+      projectData.filePath = path.relative(serverRoot, req.file.path).replace(/\\/g, '/');
       // Store a portable path relative to server root (uploads/...)
       const serverRoot = path.resolve(__dirname, '..');
       projectData.filePath = path.relative(serverRoot, req.file.path).replace(/\\/g, '/');
@@ -170,6 +235,10 @@ exports.updateProject = async (req, res, next) => {
       if (prev && fs.existsSync(prev)) fs.unlinkSync(prev);
       const serverRoot = path.resolve(__dirname, '..');
       project.filePath = path.relative(serverRoot, req.file.path).replace(/\\/g, '/');
+      const prev = resolveProjectFilePath(project.filePath);
+      if (prev && fs.existsSync(prev)) fs.unlinkSync(prev);
+      const serverRoot = path.resolve(__dirname, '..');
+      project.filePath = path.relative(serverRoot, req.file.path).replace(/\\/g, '/');
       project.fileName = req.file.originalname;
       project.fileSize = req.file.size;
     }
@@ -183,6 +252,8 @@ exports.getProjectFile = async (req, res, next) => {
     const project = await Project.findById(req.params.id);
     if (!project?.filePath) return res.status(404).json({ message: 'Archivo no encontrado.' });
 
+    const filePath = resolveProjectFilePath(project.filePath);
+    if (!filePath) return res.status(404).json({ message: 'Archivo no encontrado en el servidor.' });
     const filePath = resolveProjectFilePath(project.filePath);
     if (!filePath) return res.status(404).json({ message: 'Archivo no encontrado en el servidor.' });
 
