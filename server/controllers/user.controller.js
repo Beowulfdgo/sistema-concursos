@@ -70,17 +70,32 @@ exports.deleteUser = async (req, res, next) => {
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
 
-    // Check if user has active assignments with projects
-    const assignment = await Assignment.findOne({ reviewerId: req.params.id });
-    if (assignment && assignment.projectIds && assignment.projectIds.length > 0) {
-      return res.status(400).json({
-        message: `No se puede eliminar al revisor ${user.name} porque tiene ${assignment.projectIds.length} proyecto(s) asignado(s). Por favor, reasigne o complete primero las evaluaciones.`,
-        hasAssignments: true,
-      });
+    // Check if reviewer has active assignments with projects
+    if (user.role === 'reviewer') {
+      const assignment = await Assignment.findOne({ reviewerId: req.params.id });
+      if (assignment && assignment.projectIds && assignment.projectIds.length > 0) {
+        return res.status(400).json({
+          message: `No se puede eliminar al revisor ${user.name} porque tiene ${assignment.projectIds.length} proyecto(s) asignado(s). Por favor, reasigne o complete primero las evaluaciones.`,
+          hasAssignments: true,
+        });
+      }
+    }
+
+    // Check if student has assigned projects
+    if (user.role === 'student') {
+      const Project = require('../models/Project');
+      const projects = await Project.find({ representative: req.params.id });
+      if (projects && projects.length > 0) {
+        return res.status(400).json({
+          message: `No se puede eliminar al alumno ${user.name} porque tiene ${projects.length} proyecto(s) asignado(s). Por favor, reasigne o elimine los proyectos primero.`,
+          hasAssignments: true,
+          projectCount: projects.length,
+        });
+      }
     }
 
     // Delete the user
     await User.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Revisor eliminado correctamente' });
+    res.json({ message: `${user.role === 'reviewer' ? 'Revisor' : 'Alumno'} eliminado correctamente` });
   } catch (err) { next(err); }
 };
