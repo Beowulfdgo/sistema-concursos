@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const Assignment = require('../models/Assignment');
 
 // GET /users
 exports.getUsers = async (req, res, next) => {
@@ -66,8 +67,20 @@ exports.updateStatus = async (req, res, next) => {
 // DELETE /users/:id
 exports.deleteUser = async (req, res, next) => {
   try {
-    const user = await User.findByIdAndUpdate(req.params.id, { status: 'suspended' }, { new: true });
+    const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
-    res.json({ message: 'Usuario suspendido' });
+
+    // Check if user has active assignments with projects
+    const assignment = await Assignment.findOne({ reviewerId: req.params.id });
+    if (assignment && assignment.projectIds && assignment.projectIds.length > 0) {
+      return res.status(400).json({
+        message: `No se puede eliminar al revisor ${user.name} porque tiene ${assignment.projectIds.length} proyecto(s) asignado(s). Por favor, reasigne o complete primero las evaluaciones.`,
+        hasAssignments: true,
+      });
+    }
+
+    // Delete the user
+    await User.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Revisor eliminado correctamente' });
   } catch (err) { next(err); }
 };
