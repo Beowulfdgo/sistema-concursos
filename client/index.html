@@ -471,7 +471,7 @@ function LoginPage() {
         <div className="auth-footer">
           ¿No tienes cuenta? <a onClick={() => navigate('/register')}>Regístrate</a>
           
-          <div class="auth-version">Ver 1.4.0 <a href="https://github.com/Beowulfdgo/sistema-concursos" target="_blank" rel="noopener noreferrer">GitHub</a></div>
+          <div class="auth-version">Ver 1.4.1 <a href="https://github.com/Beowulfdgo/sistema-concursos" target="_blank" rel="noopener noreferrer">GitHub</a></div>
         </div>
       </div>
     </div>
@@ -1039,18 +1039,33 @@ function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [roleFilter, setRoleFilter] = useState('');
   const [showReviewerForm, setShowReviewerForm] = useState(false);
+  const [error, setError] = useState('');
 
-  const load = () => { setLoading(true); ax.get('/users', { params: roleFilter ? { role: roleFilter } : {} }).then(r=>setUsers(r.data.users||[])).finally(()=>setLoading(false)); };
+  const load = () => { setLoading(true); setError(''); ax.get('/users', { params: roleFilter ? { role: roleFilter } : {} }).then(r=>setUsers(r.data.users||[])).finally(()=>setLoading(false)); };
   useEffect(load, [roleFilter]);
 
   const toggleStatus = async (u) => {
     const ns = u.status==='active' ? 'suspended' : 'active';
-    try { await ax.patch(`/users/${u._id}/status`, { status:ns }); load(); } catch {}
+    try { await ax.patch(`/users/${u._id}/status`, { status:ns }); load(); } catch(err) {
+      setError(errMsg(err));
+    }
+  };
+
+  const deleteUser = async (u) => {
+    if (!window.confirm(`¿Eliminar al revisor ${u.name}? Esta acción no se puede deshacer.`)) return;
+    setError('');
+    try {
+      await ax.delete(`/users/${u._id}`);
+      load();
+    } catch(err) {
+      setError(errMsg(err));
+    }
   };
 
   return (
     <AdminLayout title="Usuarios" path="/admin/users"
       actions={<button className="btn btn-primary" onClick={()=>setShowReviewerForm(true)}>+ Nuevo Revisor</button>}>
+      {error && <Alert type="error">{error}</Alert>}
       <div style={{display:'flex',gap:10,marginBottom:16}}>
         {['','admin','reviewer','student'].map(r=>(
           <button key={r} className={`btn ${roleFilter===r?'btn-primary':'btn-secondary'} btn-sm`} onClick={()=>setRoleFilter(r)}>
@@ -1071,10 +1086,15 @@ function UsersPage() {
                     <td><Badge status={u.role} /></td>
                     <td><Badge status={u.status} /></td>
                     <td>{fmtDate(u.createdAt)}</td>
-                    <td>
+                    <td style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
                       {u.role !== 'admin' && (
                         <button className={`btn btn-sm ${u.status==='active'?'btn-danger':'btn-success'}`} onClick={()=>toggleStatus(u)}>
                           {u.status==='active'?'Suspender':'Activar'}
+                        </button>
+                      )}
+                      {u.role === 'reviewer' && u.status === 'suspended' && (
+                        <button className="btn btn-sm btn-danger" onClick={()=>deleteUser(u)}>
+                          Eliminar
                         </button>
                       )}
                     </td>
