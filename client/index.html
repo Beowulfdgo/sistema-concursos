@@ -1040,7 +1040,9 @@ function UsersPage() {
   const [roleFilter, setRoleFilter] = useState('');
   const [showReviewerForm, setShowReviewerForm] = useState(false);
   const [error, setError] = useState('');
+  const [error, setError] = useState('');
 
+  const load = () => { setLoading(true); setError(''); ax.get('/users', { params: roleFilter ? { role: roleFilter } : {} }).then(r=>setUsers(r.data.users||[])).finally(()=>setLoading(false)); };
   const load = () => { setLoading(true); setError(''); ax.get('/users', { params: roleFilter ? { role: roleFilter } : {} }).then(r=>setUsers(r.data.users||[])).finally(()=>setLoading(false)); };
   useEffect(load, [roleFilter]);
 
@@ -1061,11 +1063,27 @@ function UsersPage() {
     } catch(err) {
       setError(errMsg(err));
     }
+    try { await ax.patch(`/users/${u._id}/status`, { status:ns }); load(); } catch(err) {
+      setError(errMsg(err));
+    }
+  };
+
+  const deleteUser = async (u) => {
+    const rol = u.role === 'reviewer' ? 'revisor' : 'alumno';
+    if (!window.confirm(`¿Eliminar al ${rol} ${u.name}? Esta acción no se puede deshacer.`)) return;
+    setError('');
+    try {
+      await ax.delete(`/users/${u._id}`);
+      load();
+    } catch(err) {
+      setError(errMsg(err));
+    }
   };
 
   return (
     <AdminLayout title="Usuarios" path="/admin/users"
       actions={<button className="btn btn-primary" onClick={()=>setShowReviewerForm(true)}>+ Nuevo Revisor</button>}>
+      {error && <Alert type="error">{error}</Alert>}
       {error && <Alert type="error">{error}</Alert>}
       <div style={{display:'flex',gap:10,marginBottom:16}}>
         {['','admin','reviewer','student'].map(r=>(
@@ -1088,9 +1106,15 @@ function UsersPage() {
                     <td><Badge status={u.status} /></td>
                     <td>{fmtDate(u.createdAt)}</td>
                     <td style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
+                    <td style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
                       {u.role !== 'admin' && (
                         <button className={`btn btn-sm ${u.status==='active'?'btn-danger':'btn-success'}`} onClick={()=>toggleStatus(u)}>
                           {u.status==='active'?'Suspender':'Activar'}
+                        </button>
+                      )}
+                      {(u.role === 'reviewer' || u.role === 'student') && u.status === 'suspended' && (
+                        <button className="btn btn-sm btn-danger" onClick={()=>deleteUser(u)}>
+                          Eliminar
                         </button>
                       )}
                       {(u.role === 'reviewer' || u.role === 'student') && u.status === 'suspended' && (
@@ -1448,6 +1472,7 @@ function EvaluationPage() {
           <div><span style={{fontSize:12,color:'var(--text-3)'}}>CATEGORÍA</span><div>{project?.categoryName}</div></div>
          {project?.filePath && (
 
+
   <button className="btn btn-secondary btn-sm" onClick={async () => {
 
   try {
@@ -1471,7 +1496,34 @@ function EvaluationPage() {
   }
 }}>
 
+
+  try {
+    const token = localStorage.getItem("tk");
+
+    const response = await ax.get(`/projects/${project._id}/file`, {
+      responseType: 'blob',
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    const url = window.URL.createObjectURL(
+      new Blob([response.data], { type: 'application/pdf' })
+    );
+
+    window.open(url, '_blank');
+  } catch (err) {
+    console.error(err);
+    alert('No se pudo cargar el PDF');
+  }
+}}>
+
     📄 Ver PDF
+  </button>
+)}
+         {project?.youtubeUrl && (
+  <button className="btn btn-secondary btn-sm" onClick={() => window.open(project.youtubeUrl, '_blank')}>
+    📺 Ver Video
   </button>
 )}
          {project?.youtubeUrl && (
@@ -1577,6 +1629,7 @@ function StudentDashboard() {
   return (
     <StudentLayout title="Mi Proyecto" path="/student/dashboard"
       actions={<button className="btn btn-primary" onClick={()=>setShowUpload(true)} disabled={projects.length > 0}>📤 Subir Proyecto</button>}>
+      actions={<button className="btn btn-primary" onClick={()=>setShowUpload(true)} disabled={projects.length > 0}>📤 Subir Proyecto</button>}>
       <div style={{marginBottom:16,background:'linear-gradient(135deg,var(--blue),var(--blue-light))',borderRadius:12,padding:'20px 24px',color:'#fff'}}>
         <div style={{fontSize:12,opacity:.7}}>BIENVENIDO</div>
         <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:24}}>{user?.name}</h2>
@@ -1639,6 +1692,7 @@ function StudentDashboard() {
 
 function UploadProjectModal({ contests, onClose, onSaved, user }) {
   const [form, setForm] = useState({ title:'', contestId:'', categoryId:'', youtubeUrl:'', teamMembers:[] });
+  const [form, setForm] = useState({ title:'', contestId:'', categoryId:'', youtubeUrl:'', teamMembers:[] });
   const [file, setFile] = useState(null);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -1651,6 +1705,7 @@ function UploadProjectModal({ contests, onClose, onSaved, user }) {
       title: '',
       contestId: '',
       categoryId: '',
+      youtubeUrl: '',
       youtubeUrl: '',
       teamMembers: [{ name: user.name, email: user.email, isRepresentative: true }],
     });
@@ -1694,8 +1749,40 @@ function UploadProjectModal({ contests, onClose, onSaved, user }) {
     return id ? `https://www.youtube.com/watch?v=${id}` : null;
   };
 
+  const extractYoutubeVideoId = (url) => {
+    if (!url || typeof url !== 'string') return null;
+    const u = url.trim();
+    try {
+      const parsed = new URL(u);
+      const host = parsed.hostname.replace(/^www\./, '');
+      if (host === 'youtu.be') {
+        const id = parsed.pathname.replace(/^\//, '').split('/')[0];
+        return /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null;
+      }
+      if (host === 'youtube.com' || host === 'm.youtube.com') {
+        if (parsed.pathname === '/watch') {
+          const id = parsed.searchParams.get('v');
+          return id && /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null;
+        }
+        const m = parsed.pathname.match(/^\/(embed|shorts)\/([A-Za-z0-9_-]{11})/);
+        if (m?.[2]) return m[2];
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  const normalizeYoutubeUrl = (url) => {
+    const id = extractYoutubeVideoId(url);
+    return id ? `https://www.youtube.com/watch?v=${id}` : null;
+  };
+
   const save = async () => {
     if (!form.title||!form.contestId||!file) return setError('Título, concurso y archivo PDF son requeridos');
+    if (!form.youtubeUrl) return setError('La URL de video de YouTube es requerida');
+    const normalizedYoutubeUrl = normalizeYoutubeUrl(form.youtubeUrl);
+    if (!normalizedYoutubeUrl) return setError('URL de YouTube inválida. Formatos: https://www.youtube.com/watch?v=VIDEO_ID, https://youtu.be/VIDEO_ID, https://www.youtube.com/embed/VIDEO_ID, https://www.youtube.com/shorts/VIDEO_ID');
     if (!form.youtubeUrl) return setError('La URL de video de YouTube es requerida');
     const normalizedYoutubeUrl = normalizeYoutubeUrl(form.youtubeUrl);
     if (!normalizedYoutubeUrl) return setError('URL de YouTube inválida. Formatos: https://www.youtube.com/watch?v=VIDEO_ID, https://youtu.be/VIDEO_ID, https://www.youtube.com/embed/VIDEO_ID, https://www.youtube.com/shorts/VIDEO_ID');
@@ -1707,6 +1794,7 @@ function UploadProjectModal({ contests, onClose, onSaved, user }) {
       fd.append('categoryId', form.categoryId||'000000000000000000000000');
       fd.append('categoryName', selContest?.categories?.find(c=>c._id===form.categoryId)?.name||'');
       fd.append('youtubeUrl', normalizedYoutubeUrl);
+      fd.append('youtubeUrl', normalizedYoutubeUrl);
       fd.append('teamMembers', JSON.stringify(form.teamMembers.filter(m=>m.name)));
       fd.append('file', file);
       await ax.post('/projects', fd, { headers:{ 'Content-Type':'multipart/form-data' }});
@@ -1717,6 +1805,7 @@ function UploadProjectModal({ contests, onClose, onSaved, user }) {
 
   return (
     <Modal title="📤 Subir Proyecto" onClose={onClose}
+      footer={<><button className="btn btn-secondary" onClick={onClose}>Cancelar</button><button className="btn btn-primary" onClick={() => { if (window.confirm('¿Estás seguro de que los datos están correctos? Una vez registrado el proyecto, no podrás agregar alumnos, cambiar videos ni subir archivos PDF.')) save(); }} disabled={saving}>{saving?'Subiendo...':'Registrar Proyecto'}</button></>}>
       footer={<><button className="btn btn-secondary" onClick={onClose}>Cancelar</button><button className="btn btn-primary" onClick={() => { if (window.confirm('¿Estás seguro de que los datos están correctos? Una vez registrado el proyecto, no podrás agregar alumnos, cambiar videos ni subir archivos PDF.')) save(); }} disabled={saving}>{saving?'Subiendo...':'Registrar Proyecto'}</button></>}>
       {error && <Alert type="error">{error}</Alert>}
       <div className="form-group"><label className="form-label">Título del proyecto *</label>
@@ -1733,6 +1822,33 @@ function UploadProjectModal({ contests, onClose, onSaved, user }) {
             {selContest.categories.map(c=><option key={c._id} value={c._id}>{c.name}</option>)}
           </select></div>
       )}
+      <div className="form-group">
+        <label className="form-label">URL de video de YouTube *</label>
+        <input
+          className="form-input"
+          value={form.youtubeUrl}
+          onChange={e=>setForm({...form,youtubeUrl:e.target.value})}
+          placeholder="https://www.youtube.com/watch?v=VIDEO_ID ó https://youtu.be/VIDEO_ID"
+        />
+        <div style={{ marginTop: 6, fontSize: 12, color: 'var(--text-3)' }}>
+          Formatos aceptados:{' '}
+          <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace' }}>
+            https://www.youtube.com/watch?v=VIDEO_ID
+          </span>
+          {' '}•{' '}
+          <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace' }}>
+            https://youtu.be/VIDEO_ID
+          </span>
+          {' '}•{' '}
+          <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace' }}>
+            https://www.youtube.com/embed/VIDEO_ID
+          </span>
+          {' '}•{' '}
+          <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace' }}>
+            https://www.youtube.com/shorts/VIDEO_ID
+          </span>
+        </div>
+      </div>
       <div className="form-group">
         <label className="form-label">URL de video de YouTube *</label>
         <input
