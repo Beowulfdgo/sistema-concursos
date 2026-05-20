@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import Layout from './components/common/Layout';
 import { LoginPage } from './pages/AuthPages';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import UserManagement from './pages/admin/UserManagement';
 import ReviewerDashboard from './pages/reviewer/ReviewerDashboard';
 import EvaluateProject from './pages/reviewer/EvaluateProject';
 import ContestProjects from './pages/reviewer/ContestProjects';
@@ -18,6 +19,7 @@ function App() {
             <Route path="/" element={<LoginPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/users" element={<UserManagement />} />
             <Route path="/reviewer/dashboard" element={<ReviewerDashboard />} />
             <Route path="/reviewer/evaluate/:projectId" element={<EvaluateProject />} />
             <Route path="/reviewer/contest/:contestId" element={<ContestProjects />} />

@@ -18,10 +18,11 @@ const studentNav = [
   { to: '/student/dashboard', icon: '▦', label: 'Mi Proyecto' },
 ];
 
-export default function Layout({ children, role }) {
+export default function Layout({ children }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
+  const role = user?.role;
 
   const nav = role === 'admin' ? adminNav : role === 'reviewer' ? reviewerNav : studentNav;
   const roleLabel = role === 'admin' ? 'Administrador' : role === 'reviewer' ? 'Revisor' : 'Alumno';
