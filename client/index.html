@@ -1040,9 +1040,8 @@ function UsersPage() {
   const [roleFilter, setRoleFilter] = useState('');
   const [showReviewerForm, setShowReviewerForm] = useState(false);
   const [error, setError] = useState('');
-  const [error, setError] = useState('');
 
-  const load = () => { setLoading(true); setError(''); ax.get('/users', { params: roleFilter ? { role: roleFilter } : {} }).then(r=>setUsers(r.data.users||[])).finally(()=>setLoading(false)); };
+
   const load = () => { setLoading(true); setError(''); ax.get('/users', { params: roleFilter ? { role: roleFilter } : {} }).then(r=>setUsers(r.data.users||[])).finally(()=>setLoading(false)); };
   useEffect(load, [roleFilter]);
 
