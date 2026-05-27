@@ -1698,6 +1698,7 @@ function UploadProjectModal({ contests, onClose, onSaved, user }) {
 
   const save = async () => {
     if (!form.title||!form.contestId||!file) return setError('Título, concurso y archivo PDF son requeridos');
+    if (selContest?.categories?.length > 0 && !form.categoryId) return setError('La categoría es requerida');
     if (!form.youtubeUrl) return setError('La URL de video de YouTube es requerida');
     const normalizedYoutubeUrl = normalizeYoutubeUrl(form.youtubeUrl);
     if (!normalizedYoutubeUrl) return setError('URL de YouTube inválida. Formatos: https://www.youtube.com/watch?v=VIDEO_ID, https://youtu.be/VIDEO_ID, https://www.youtube.com/embed/VIDEO_ID, https://www.youtube.com/shorts/VIDEO_ID');
@@ -1729,7 +1730,7 @@ function UploadProjectModal({ contests, onClose, onSaved, user }) {
           {contests.map(c=><option key={c._id} value={c._id}>{c.name}</option>)}
         </select></div>
       {selContest?.categories?.length>0 && (
-        <div className="form-group"><label className="form-label">Categoría</label>
+        <div className="form-group"><label className="form-label">Categoría *</label>
           <select className="form-select" value={form.categoryId} onChange={e=>setForm({...form,categoryId:e.target.value})}>
             <option value="">— Selecciona categoría —</option>
             {selContest.categories.map(c=><option key={c._id} value={c._id}>{c.name}</option>)}
