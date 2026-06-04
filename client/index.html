@@ -376,6 +376,42 @@ const errMsg = err => err?.response?.data?.message || err?.message || 'Error des
 const fmtDate = d => d ? new Date(d).toLocaleDateString('es-MX', { year:'numeric', month:'short', day:'numeric' }) : '—';
 const fmtScore = s => s !== null && s !== undefined ? s.toFixed(2) : '—';
 
+function parseFilenameFromDisposition(disposition, fallback) {
+  if (!disposition) return fallback;
+  const match = disposition.match(/filename\*?=(?:UTF-8'')?"?([^";\n]*)"?/i);
+  if (!match) return fallback;
+  try {
+    return decodeURIComponent(match[1].replace(/['"]/g, '')) || fallback;
+  } catch {
+    return match[1].replace(/['"]/g, '') || fallback;
+  }
+}
+
+async function handleExportProject(projectId, projectTitle) {
+  if (!projectId) {
+    alert('ID de proyecto inválido para exportar.');
+    return;
+  }
+
+  try {
+    const response = await ax.get(`/admin/export-project/${projectId}`, { responseType: 'blob' });
+    const disposition = response.headers['content-disposition'] || response.headers['Content-Disposition'] || '';
+    const safeTitle = projectTitle ? projectTitle.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/_+/g, '_').replace(/^_+|_+$/g, '') : 'proyecto';
+    const filename = parseFilenameFromDisposition(disposition, `${safeTitle}_expediente.zip`);
+    const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/zip' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error(err);
+    alert('No se pudo descargar el expediente ZIP. ' + errMsg(err));
+  }
+}
+
 function Badge({ status, text }) {
   const t = text || status;
   const labels = { active:'Activo', pending:'Pendiente', draft:'Borrador', closed:'Cerrado', archived:'Archivado',
@@ -1797,6 +1833,7 @@ function ResultsPage() {
   const [ranking, setRanking] = useState(null);
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [exportingProjectId, setExportingProjectId] = useState(null);
 
   useEffect(() => {
     ax.get('/contests').then(r => setContests(r.data));
@@ -1824,6 +1861,15 @@ function ResultsPage() {
       window.URL.revokeObjectURL(url);
     } catch { alert('Error al exportar'); }
     setExporting(false);
+  };
+
+  const exportProject = async (projectId, projectTitle) => {
+    setExportingProjectId(projectId);
+    try {
+      await handleExportProject(projectId, projectTitle);
+    } finally {
+      setExportingProjectId(null);
+    }
   };
 
   const medals = ['🥇', '🥈', '🥉'];
@@ -1893,7 +1939,7 @@ function ResultsPage() {
               {/* Proyectos */}
               <div style={{ display: 'grid', gap: 10 }}>
                 {cat.projects.map((p, pi) => (
-                  <div className="card" key={p.projectId} style={{ padding: '16px 20px' }}>
+                  <div className="card" key={p.projectId || p._id} style={{ padding: '16px 20px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                       {/* Lugar */}
                       <div style={{ textAlign: 'center', flexShrink: 0, width: 48 }}>
@@ -1925,6 +1971,16 @@ function ResultsPage() {
                           <Badge status={p.status} />
                         )}
                       </div>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14 }}>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        title="Descargar ZIP del proyecto"
+                        onClick={() => exportProject(p.projectId || p._id, p.title)}
+                        disabled={exportingProjectId === (p.projectId || p._id)}
+                      >
+                        {exportingProjectId === (p.projectId || p._id) ? 'Descargando...' : '📥 ZIP'}
+                      </button>
                     </div>
                   </div>
                 ))}
