@@ -26,6 +26,7 @@ Added
   - `https://www.youtube.com/shorts/VIDEO_ID`
 - Normalización de `youtubeUrl` a formato canónico `https://www.youtube.com/watch?v=VIDEO_ID` al registrar proyectos.
 - Soporte de configuración de almacenamiento de PDFs vía `UPLOAD_DIR` (para volúmenes persistentes en Railway u otras plataformas).
+- Exportación de expediente de proyecto en ZIP desde el panel admin, incluyendo PDF original del proyecto, PDF de evaluación consolidada y un archivo `informacion_proyecto.txt`.
 
 
 Fixed
