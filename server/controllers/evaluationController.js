@@ -3,6 +3,7 @@ const Evaluation = require('../models/Evaluation');
 const Project = require('../models/Project');
 const Rubric = require('../models/Rubric');
 const Contest = require('../models/Contest');
+const exportService = require('../services/export.service');
 
 exports.getProjectEvaluations = async (req, res, next) => {
   try {
@@ -24,6 +25,21 @@ exports.getEvaluation = async (req, res, next) => {
     if (!evaluation) return res.status(404).json({ message: 'Evaluación no encontrada.' });
     res.json(evaluation);
   } catch (err) { next(err); }
+};
+
+exports.exportEvaluationPdf = async (req, res, next) => {
+  try {
+    const pdfBuffer = await exportService.generateEvaluationPdf(req.params.projectId);
+    const filename = `evaluacion_consolidada_${req.params.projectId}.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(pdfBuffer);
+  } catch (err) {
+    if (err.message && err.message.includes('Proyecto no encontrado')) {
+      return res.status(404).json({ message: err.message });
+    }
+    next(err);
+  }
 };
 
 exports.createOrUpdateEvaluation = async (req, res, next) => {

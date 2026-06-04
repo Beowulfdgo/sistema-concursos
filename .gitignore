@@ -11,6 +11,7 @@ pnpm-debug.log*
 .env.local
 .env.*.local
 server/.env
+railway.env
 
 # Logs
 logs/
@@ -38,3 +39,4 @@ Thumbs.db
 .nyc_output/
 .idea/
 .vscode/
+RETOMAR.md
