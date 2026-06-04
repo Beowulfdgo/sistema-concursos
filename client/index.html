@@ -373,6 +373,21 @@ function navigate(path) { window.location.hash = '#' + path; }
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 const errMsg = err => err?.response?.data?.message || err?.message || 'Error desconocido';
+
+const parseBlobError = async (err) => {
+  const blob = err?.response?.data;
+  if (blob instanceof Blob && blob.type.includes('application/json')) {
+    try {
+      const text = await blob.text();
+      const payload = JSON.parse(text);
+      return payload.message || JSON.stringify(payload);
+    } catch {
+      return err.message || 'Error desconocido';
+    }
+  }
+  return errMsg(err);
+};
+
 const fmtDate = d => d ? new Date(d).toLocaleDateString('es-MX', { year:'numeric', month:'short', day:'numeric' }) : '—';
 const fmtScore = s => s !== null && s !== undefined ? s.toFixed(2) : '—';
 
@@ -408,7 +423,8 @@ async function handleExportProject(projectId, projectTitle) {
     window.URL.revokeObjectURL(url);
   } catch (err) {
     console.error(err);
-    alert('No se pudo descargar el expediente ZIP. ' + errMsg(err));
+    const message = await parseBlobError(err);
+    alert('No se pudo descargar el expediente ZIP. ' + message);
   }
 }
 

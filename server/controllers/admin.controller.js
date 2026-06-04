@@ -8,6 +8,11 @@ exports.exportProjectZip = async (req, res, next) => {
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
     archive.on('error', (err) => next(err));
+    res.on('close', () => {
+      if (!res.writableEnded) {
+        archive.destroy();
+      }
+    });
     archive.pipe(res);
     await archive.finalize();
   } catch (err) {

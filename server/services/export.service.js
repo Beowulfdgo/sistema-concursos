@@ -207,21 +207,25 @@ exports.generateProjectZip = async (projectId) => {
     .populate('contestId', 'name edition')
     .lean();
 
-  if (!project) throw new Error('Proyecto no encontrado.');
+  if (!project) {
+    const error = new Error('Proyecto no encontrado.');
+    error.status = 404;
+    throw error;
+  }
 
   console.log('[EXPORT] Proyecto encontrado');
   const submittedEvals = await Evaluation.find({ projectId, status: 'submitted' }).lean();
-  const archive = archiver('zip', { zlib: { level: 9 } });
+  const archive = new archiver.ZipArchive({ zlib: { level: 9 } });
 
   archive.on('warning', err => {
     if (err.code === 'ENOENT') {
       console.warn('[EXPORT]', err.message);
     } else {
-      throw err;
+      console.warn('[EXPORT] Archiver warning:', err);
     }
   });
   archive.on('error', err => {
-    throw err;
+    console.error('[EXPORT] Archiver error:', err);
   });
 
   const originalPath = project.filePath ? path.join(__dirname, '..', project.filePath) : null;
