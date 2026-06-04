@@ -1,4 +1,7 @@
 const PDFDocument = require('pdfkit');
+const archiver = require('archiver');
+const fs = require('fs');
+const path = require('path');
 const Project = require('../models/Project');
 const Evaluation = require('../models/Evaluation');
 
@@ -9,6 +12,72 @@ const formatDate = (value) => {
   } catch {
     return String(value);
   }
+};
+
+const sanitizeFilename = (value) => {
+  if (!value) return 'exportacion_proyecto';
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9 _-]/g, '')
+    .trim()
+    .replace(/\s+/g, '_')
+    .replace(/_+/g, '_');
+};
+
+const formatDateTime = (dateValue) => {
+  const date = new Date(dateValue || new Date());
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+};
+
+const buildProjectInfoText = (project, evaluations) => {
+  const statusMap = { submitted: 'Enviado', under_review: 'En revisión', evaluated: 'Evaluado' };
+  const teamNames = (project.teamMembers || []).map(m => m.name).filter(Boolean);
+  if (teamNames.length === 0 && project.representative?.name) {
+    teamNames.push(project.representative.name);
+  }
+
+  let text = '';
+  text += '=================================================\n';
+  text += 'INFORMACIÓN GENERAL DEL PROYECTO\n';
+  text += '=================================================\n\n';
+  text += `Proyecto:\n${project.title || '—'}\n\n`;
+  text += `Número de registro:\n${project.registrationNumber || '—'}\n\n`;
+  text += `Concurso:\n${project.contestId?.name || '—'}\n\n`;
+  text += `Categoría:\n${project.categoryName || 'Sin categoría'}\n\n`;
+  text += `Estado:\n${statusMap[project.status] || project.status || '—'}\n\n`;
+  text += `Calificación Final:\n${project.finalScore != null ? project.finalScore.toFixed(3) : 'Pendiente'}\n\n`;
+  text += '=================================================\n';
+  text += 'VIDEO DEL PROYECTO\n';
+  text += '=================================================\n\n';
+  text += `${project.youtubeUrl || '—'}\n\n`;
+  text += '=================================================\n';
+  text += 'INTEGRANTES\n';
+  text += '=================================================\n\n';
+  text += teamNames.length > 0 ? teamNames.join('\n\n') : 'No hay integrantes registrados';
+  text += '\n\n';
+  text += '=================================================\n';
+  text += 'FECHA DE EXPORTACIÓN\n';
+  text += '=================================================\n\n';
+  text += `${formatDateTime(new Date())}\n\n`;
+
+  const feedbacks = evaluations.filter(ev => ev.generalComments && ev.generalComments.trim());
+  if (feedbacks.length > 0) {
+    text += '=================================================\n';
+    text += 'RETROALIMENTACIÓN GENERAL\n';
+    text += '=================================================\n\n';
+    feedbacks.forEach((ev, index) => {
+      const label = `Dictamen ${String.fromCharCode(65 + index)}`;
+      text += `${label}\n\n${ev.generalComments.trim()}\n\n`;
+      if (index < feedbacks.length - 1) {
+        text += '-------------------------------------------------\n\n';
+      }
+    });
+    text += '\n';
+  }
+
+  return text;
 };
 
 const ensureSpace = (doc, neededLines = 5) => {
@@ -130,4 +199,53 @@ exports.generateEvaluationPdf = async (projectId) => {
   doc.end();
   await new Promise((resolve, reject) => doc.on('end', resolve).on('error', reject));
   return Buffer.concat(chunks);
+};
+
+exports.generateProjectZip = async (projectId) => {
+  const project = await Project.findById(projectId)
+    .populate('representative', 'name institution')
+    .populate('contestId', 'name edition')
+    .lean();
+
+  if (!project) {
+    const error = new Error('Proyecto no encontrado.');
+    error.status = 404;
+    throw error;
+  }
+
+  console.log('[EXPORT] Proyecto encontrado');
+  const submittedEvals = await Evaluation.find({ projectId, status: 'submitted' }).lean();
+  const archive = new archiver.ZipArchive({ zlib: { level: 9 } });
+
+  archive.on('warning', err => {
+    if (err.code === 'ENOENT') {
+      console.warn('[EXPORT]', err.message);
+    } else {
+      console.warn('[EXPORT] Archiver warning:', err);
+    }
+  });
+  archive.on('error', err => {
+    console.error('[EXPORT] Archiver error:', err);
+  });
+
+  const originalPath = project.filePath ? path.join(__dirname, '..', project.filePath) : null;
+  if (originalPath && fs.existsSync(originalPath)) {
+    archive.file(originalPath, { name: 'proyecto.pdf' });
+    console.log('[EXPORT] PDF original agregado');
+  } else {
+    archive.append('El archivo PDF original del proyecto no fue encontrado en el sistema.', { name: 'proyecto_no_disponible.txt' });
+  }
+
+  const evaluationPdf = await exports.generateEvaluationPdf(projectId);
+  archive.append(evaluationPdf, { name: 'evaluacion_consolidada.pdf' });
+  console.log('[EXPORT] PDF consolidado generado');
+
+  const infoText = buildProjectInfoText(project, submittedEvals);
+  archive.append(infoText, { name: 'informacion_proyecto.txt' });
+
+  const now = new Date();
+  const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+  const filename = `${sanitizeFilename(project.title)}_${timestamp}.zip`;
+
+  return { archive, filename };
 };

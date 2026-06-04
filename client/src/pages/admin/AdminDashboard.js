@@ -17,6 +17,7 @@ export default function AdminDashboard() {
   const [ranking, setRanking] = useState([]);
   const [loading, setLoading] = useState(true);
   const [downloadingReviewers, setDownloadingReviewers] = useState(false);
+  const [downloadingZipProjectId, setDownloadingZipProjectId] = useState(null);
 
   useEffect(() => {
     Promise.all([api.get('/dashboard/admin'), api.get('/contests')])
@@ -47,6 +48,26 @@ export default function AdminDashboard() {
       console.error('Error al descargar revisores activos', error);
     } finally {
       setDownloadingReviewers(false);
+    }
+  };
+
+  const downloadProjectZip = async (projectId, projectTitle) => {
+    try {
+      setDownloadingZipProjectId(projectId);
+      const response = await api.get(`/admin/export-project/${projectId}`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(response.data);
+      const link = document.createElement('a');
+      link.href = url;
+      const sanitizedTitle = projectTitle ? projectTitle.replace(/[^a-zA-Z0-9_-]/g, '_') : 'proyecto';
+      link.setAttribute('download', `${sanitizedTitle}_expediente.zip`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error al exportar el expediente del proyecto', error);
+    } finally {
+      setDownloadingZipProjectId(null);
     }
   };
 
@@ -81,7 +102,7 @@ export default function AdminDashboard() {
         <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--gray-100)' }}>
           <h2 style={{ fontSize: 16, fontFamily: 'var(--font-body)', fontWeight: 700 }}>Proyectos recientes</h2>
         </div>
-        <Table headers={['Proyecto', 'Alumno', 'Concurso', 'Fecha', 'Estado']}>
+        <Table headers={['Proyecto', 'Alumno', 'Concurso', 'Fecha', 'Estado', 'Acción']}>
           {stats?.recentProjects?.map(p => (
             <Tr key={p._id}>
               <Td><span style={{ fontWeight: 600 }}>{p.title}</span></Td>
@@ -89,6 +110,16 @@ export default function AdminDashboard() {
               <Td>{p.contestId?.name}</Td>
               <Td>{formatDate(p.createdAt)}</Td>
               <Td>{statusBadge(p.status)}</Td>
+              <Td>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  loading={downloadingZipProjectId === p._id}
+                  onClick={() => downloadProjectZip(p._id, p.title)}
+                >
+                  Exportar ZIP
+                </Button>
+              </Td>
             </Tr>
           ))}
         </Table>
