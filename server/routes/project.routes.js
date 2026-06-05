@@ -6,7 +6,7 @@ router.use(verifyJWT);
 router.get('/', c.getProjects);
 router.get('/:id', c.getProjectById);
 router.get('/:id/file', c.getProjectFile);
-router.post('/', checkRole('student'), upload.single('file'), c.createProject);
+router.post('/', checkRole('student'), upload.single('file'), upload.success, c.createProject);
 router.put('/:id', c.updateProject);
 router.delete('/:id', checkRole('admin'), c.deleteProject);
 module.exports = router;
