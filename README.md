@@ -333,27 +333,107 @@ EMAIL_USER=tu@email.com
 EMAIL_PASS=app_password
 
 CLIENT_URL=http://localhost:3000
+
+# Almacenamiento de PDFs
+# Local: "uploads/projects" (relativo a server/)
+# Railway: "/data/uploads/projects" (volumen persistente)
+# Si no se define, se usa "server/uploads/projects"
 UPLOAD_DIR=uploads/projects
+
 MAX_FILE_SIZE=10485760
 ```
 
-### 📦 Almacenamiento de PDFs en producción (importante)
+### 📦 Almacenamiento Persistente de PDFs
 
-Este sistema permite subir PDFs de proyectos. **En producción no se recomienda depender del filesystem del contenedor** (por ejemplo en Railway), porque en cada redeploy/restart el disco puede ser **efímero** y los archivos pueden perderse aunque el registro siga existiendo en MongoDB.
+Este sistema permite subir PDFs de proyectos. **En producción es crítico usar almacenamiento persistente**, porque en cada redeploy/restart el disco del contenedor puede ser **efímero** y los archivos podrían perderse aunque el registro siga existiendo en MongoDB.
 
-- **Opción A (Railway Volume / disco persistente)**:
-  - Crear un Volume y montarlo (ej. mount path: `/data`)
-  - Configurar `UPLOAD_DIR` para apuntar al volumen:
+#### Configuración para Railway (Recomendado)
 
+Railway ofrece **Volumes** (volúmenes persistentes) montados en directorios específicos que sobreviven a reinicios y redeploys.
+
+**Paso 1: Crear un Volume en Railway**
+- En el panel de Railway, ir a tu servicio
+- Variables → agregar volumen
+- Nombre: `pdf-storage`
+- Mount path: `/data`
+- Tamaño: según necesites (ej. 10 GB)
+
+**Paso 2: Configurar variable de entorno**
+En Railway → Environment, agregar:
 ```env
 UPLOAD_DIR=/data/uploads/projects
 ```
 
-- **Opción B (Object Storage: AWS S3 / Cloudflare R2 / etc.)**:
-  - Guardar los archivos en un bucket y persistir en MongoDB una URL (`fileUrl`) o una key del objeto.
-  - Recomendado si necesitas alta disponibilidad y escalabilidad.
+**Paso 3: Verificar estado**
+Ejecutar el script de verificación:
+```bash
+node server/scripts/check-upload-storage.js
+```
 
-### Configurar Gmail para 2FA
+Output esperado:
+```
+UPLOAD_DIR: /data/uploads/projects
+Existe: ✅ SÍ
+Total de archivos: 15
+📊 TOTAL: 245.50 MB en 15 archivo(s)
+```
+
+#### Cómo funciona el almacenamiento
+
+**Upload (POST /projects)**
+1. Alumno carga un PDF mediante formulario
+2. Multer guarda en `UPLOAD_DIR` (resolviendo a `/data/uploads/projects`)
+3. Se guarda en MongoDB:
+   - `filePath`: ruta relativa (para compatibilidad)
+   - `pdfFilename`: nombre único del archivo (ej: `8a3f4b2c-1234567890.pdf`)
+   - `fileName`: nombre original (ej: `proyecto.pdf`)
+
+**Download/Ver (GET /projects/:id/file)**
+1. El controlador busca el PDF usando múltiples estrategias:
+   - Prioridad 1: `UPLOAD_DIR + pdfFilename`
+   - Prioridad 2: `filePath` (histórico)
+   - Prioridad 3: `/data/uploads/projects` (fallback)
+2. Si lo encuentra, envía el archivo
+3. Si no existe, retorna 404
+
+**Exportación ZIP (GET /admin/export/:id)**
+1. Busca el PDF original con las mismas estrategias
+2. Si lo encuentra, lo incluye en el ZIP como `proyecto.pdf`
+3. Si no existe, crea `proyecto_no_disponible.txt` con explicación
+
+#### Solución de problemas
+
+**❌ Problema: PDFs desaparecen después de redeploy**
+
+**Causa:** `UPLOAD_DIR` no está configurado en Railway
+
+**Solución:**
+1. Crear el volumen (ver Paso 1)
+2. Configurar variable en Railway (ver Paso 2)
+3. Hacer redeploy
+4. Correr verificación
+
+**❌ Problema: Logs muestran "[UPLOAD] Using directory: server/uploads/projects"**
+
+**Causa:** Sistema está usando directorio efímero, no el volumen
+
+**Solución:** Verificar que `UPLOAD_DIR` esté definido en Railway (sin espacios extras)
+
+**❌ Problema: "PDF original no encontrado" en exportaciones**
+
+**Causa:** PDF de un proyecto antiguo (subido antes de la migración)
+
+**Solución:** Es normal para proyectos anteriores. El ZIP seguirá siendo válido con el archivo `proyecto_no_disponible.txt` que explica la situación.
+
+#### Alternativas
+
+- **Opción B (AWS S3 / Cloudflare R2 / similar)**:
+  - Guardar archivos en Object Storage externo
+  - Persistir URL del archivo en MongoDB
+  - Recomendado si necesitas escalabilidad internacional
+  - Mayor costo que Railway Volume
+
+---
 1. Activar verificación en 2 pasos en tu cuenta Google
 2. Ir a Seguridad → Contraseñas de aplicación
 3. Generar contraseña para "Correo" → usar en `EMAIL_PASS`

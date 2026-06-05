@@ -150,6 +150,7 @@ exports.createProject = async (req, res, next) => {
     if (req.file) {
       const serverRoot = path.resolve(__dirname, '..');
       projectData.filePath = path.relative(serverRoot, req.file.path).replace(/\\/g, '/');
+      projectData.pdfFilename = req.file.filename;
       projectData.fileName = req.file.originalname;
       projectData.fileSize = req.file.size;
     }

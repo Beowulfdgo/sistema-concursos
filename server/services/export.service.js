@@ -5,6 +5,56 @@ const path = require('path');
 const Project = require('../models/Project');
 const Evaluation = require('../models/Evaluation');
 
+/**
+ * Resuelve la ruta del PDF del proyecto con búsqueda por prioridades.
+ * Prioridad 1: UPLOAD_DIR + pdfFilename
+ * Prioridad 2: filePath (compatibilidad histórica)
+ * Prioridad 3: /data/uploads/projects (para Railway legacy)
+ * @param {Object} project - Documento del proyecto
+ * @returns {string|null} - Ruta absoluta del PDF o null si no existe
+ */
+const resolveProjectPdf = (project) => {
+  if (!project) return null;
+
+  const candidates = [];
+
+  // Prioridad 1: UPLOAD_DIR + pdfFilename
+  if (process.env.UPLOAD_DIR && process.env.UPLOAD_DIR.trim() && project.pdfFilename) {
+    const uploadDir = process.env.UPLOAD_DIR.trim();
+    const isAbsolute = path.isAbsolute(uploadDir);
+    const dir = isAbsolute ? uploadDir : path.resolve(__dirname, '..', uploadDir);
+    candidates.push(path.join(dir, project.pdfFilename));
+  }
+
+  // Prioridad 2: filePath (compatibilidad histórica)
+  if (project.filePath) {
+    const normalized = project.filePath.replace(/\\/g, '/').trim();
+    
+    // Si es ruta absoluta
+    if (path.isAbsolute(normalized)) {
+      candidates.push(normalized);
+    } else {
+      // Si es relativa, resolver desde server root
+      const serverRoot = path.resolve(__dirname, '..');
+      candidates.push(path.resolve(serverRoot, normalized));
+    }
+  }
+
+  // Prioridad 3: Railway legacy path
+  candidates.push('/data/uploads/projects');
+
+  // Buscar el primer candidato existente
+  for (const candidate of candidates) {
+    if (candidate && fs.existsSync(candidate)) {
+      console.log('[EXPORT] PDF encontrado en:', candidate);
+      return candidate;
+    }
+  }
+
+  console.warn('[EXPORT] PDF no encontrado. Candidatos probados:', candidates);
+  return null;
+};
+
 const formatDate = (value) => {
   if (!value) return '—';
   try {
@@ -228,12 +278,28 @@ exports.generateProjectZip = async (projectId) => {
     console.error('[EXPORT] Archiver error:', err);
   });
 
-  const originalPath = project.filePath ? path.join(__dirname, '..', project.filePath) : null;
-  if (originalPath && fs.existsSync(originalPath)) {
-    archive.file(originalPath, { name: 'proyecto.pdf' });
-    console.log('[EXPORT] PDF original agregado');
+  const originalPath = resolveProjectPdf(project);
+  if (originalPath) {
+    try {
+      archive.file(originalPath, { name: 'proyecto.pdf' });
+      console.log('[EXPORT] PDF original agregado:', originalPath);
+    } catch (err) {
+      console.error('[EXPORT] Error al agregar PDF original:', err.message);
+      archive.append(
+        'El archivo PDF original no pudo ser incluido debido a un error de lectura.\\n\\nProbables causas:\\n- Permisos insuficientes\\n- Ruta corrupta en la base de datos',
+        { name: 'proyecto_no_disponible.txt' }
+      );
+    }
   } else {
-    archive.append('El archivo PDF original del proyecto no fue encontrado en el sistema.', { name: 'proyecto_no_disponible.txt' });
+    console.warn('[EXPORT] PDF original no encontrado para proyecto:', project._id);
+    archive.append(
+      'El archivo PDF original no fue encontrado en el almacenamiento.\\n\\n' +
+      'Probables causas:\\n' +
+      '- Eliminado durante un redeploy previo a la migración al volumen persistente\\n' +
+      '- Ruta no disponible en la ubicación esperada\\n' +
+      '- Cambios en la estructura de directorios del servidor',
+      { name: 'proyecto_no_disponible.txt' }
+    );
   }
 
   const evaluationPdf = await exports.generateEvaluationPdf(projectId);
@@ -249,3 +315,5 @@ exports.generateProjectZip = async (projectId) => {
 
   return { archive, filename };
 };
+
+exports.resolveProjectPdf = resolveProjectPdf;
