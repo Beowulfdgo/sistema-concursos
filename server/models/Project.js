@@ -15,6 +15,7 @@ const projectSchema = new mongoose.Schema({
   representative: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   teamMembers: [teamMemberSchema],
   filePath: { type: String },
+  pdfFilename: { type: String },
   fileName: { type: String },
   fileSize: { type: Number },
   registrationNumber: { type: String, unique: true, sparse: true },
