@@ -12,6 +12,7 @@ const projectRoutes = require('./routes/projects');
 const evaluationRoutes = require('./routes/evaluations');
 const assignmentRoutes = require('./routes/assignments');
 const dashboardRoutes = require('./routes/dashboard');
+const adminRoutes = require('./routes/admin.routes');
 
 const errorHandler = require('./middlewares/errorHandler');
 
@@ -51,6 +52,7 @@ app.use('/api/v1/projects', projectRoutes);
 app.use('/api/v1/evaluations', evaluationRoutes);
 app.use('/api/v1/assignments', assignmentRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
+app.use('/api/v1/admin', adminRoutes);
 
 app.get('/api/v1/health', (req, res) => res.json({ status: 'OK', timestamp: new Date() }));
 app.get('/', (req, res) => {
